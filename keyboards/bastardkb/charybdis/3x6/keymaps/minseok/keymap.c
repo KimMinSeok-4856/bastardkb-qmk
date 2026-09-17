@@ -10,8 +10,6 @@
 
 #include QMK_KEYBOARD_H
 
-#define DRGSCRL QK_KB_6
-
 // Tap Dance indexes
 enum tap_dance_indexes {
     TD_0 = 0,
@@ -88,6 +86,12 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                   _______, _______, _______,    _______, _______
   )
 };
+
+// 3번 레이어(마우스 레이어) 진입 시 자동으로 트랙볼 드래그 스크롤 활성화
+layer_state_t layer_state_set_user(layer_state_t state) {
+    charybdis_set_pointer_dragscroll_enabled(IS_LAYER_ON_STATE(state, 3));
+    return state;
+}
 
 // Layer-dependent RGB Matrix Indicators
 // Layer 1: Red (255, 0, 0)
