@@ -10,8 +10,6 @@
 
 #include QMK_KEYBOARD_H
 
-#define DRGSCRL QK_KB_6
-
 // Tap Dance indexes
 enum tap_dance_indexes {
     TD_0 = 0,
