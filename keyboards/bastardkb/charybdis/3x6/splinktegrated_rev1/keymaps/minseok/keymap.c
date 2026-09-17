@@ -162,9 +162,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-// Charybdis WebHID Custom Configuration Struct (32 bytes)
+// Charybdis WebHID Custom Configuration Struct (Extended for Tap Dance)
 #define CHARYBDIS_CONFIG_MAGIC 0xCB
-#define CHARYBDIS_CONFIG_VERSION 1
+#define CHARYBDIS_CONFIG_VERSION 2
+#define NUM_TD_SLOTS 11
+
+typedef struct {
+    uint16_t tap;
+    uint16_t hold;
+} td_config_slot_t;
 
 typedef struct {
     uint8_t magic;
@@ -186,6 +192,7 @@ typedef struct {
     uint8_t layer3_g;
     uint8_t layer3_b;
     uint8_t reserved[12];
+    td_config_slot_t td_slots[NUM_TD_SLOTS];
 } charybdis_user_config_t;
 
 static charybdis_user_config_t g_user_config = {
@@ -200,7 +207,20 @@ static charybdis_user_config_t g_user_config = {
     .dragscroll_rev_y = 1,
     .layer1_r = 255, .layer1_g = 0, .layer1_b = 0,
     .layer2_r = 0, .layer2_g = 0, .layer2_b = 255,
-    .layer3_r = 180, .layer3_g = 0, .layer3_b = 255
+    .layer3_r = 180, .layer3_g = 0, .layer3_b = 255,
+    .td_slots = {
+        [0]  = {KC_N, KC_B},
+        [1]  = {KC_Z, LCTL(KC_Z)},
+        [2]  = {KC_X, LCTL(KC_X)},
+        [3]  = {KC_C, LCTL(KC_C)},
+        [4]  = {KC_V, LCTL(KC_V)},
+        [5]  = {KC_E, LGUI(KC_E)},
+        [6]  = {KC_RALT, KC_RCTL},
+        [7]  = {KC_MINS, KC_EQL},
+        [8]  = {KC_BSPC, KC_DEL},
+        [9]  = {KC_SLSH, KC_BSLS},
+        [10] = {KC_LBRC, KC_RBRC}
+    }
 };
 
 void apply_user_config(void) {
@@ -216,6 +236,13 @@ void apply_user_config(void) {
         g_charybdis_dragscroll_buffer_size = g_user_config.dragscroll_buffer;
     }
     g_charybdis_dragscroll_reverse_y = (g_user_config.dragscroll_rev_y != 0);
+
+    for (uint8_t i = 0; i < NUM_TD_SLOTS; i++) {
+        if (g_user_config.td_slots[i].tap != 0) {
+            td_tap_holds[i].tap = g_user_config.td_slots[i].tap;
+            td_tap_holds[i].hold = g_user_config.td_slots[i].hold;
+        }
+    }
 }
 
 void load_user_config(void) {
@@ -231,6 +258,10 @@ void load_user_config(void) {
 void save_user_config(void) {
     g_user_config.magic = CHARYBDIS_CONFIG_MAGIC;
     g_user_config.version = CHARYBDIS_CONFIG_VERSION;
+    for (uint8_t i = 0; i < NUM_TD_SLOTS; i++) {
+        g_user_config.td_slots[i].tap = td_tap_holds[i].tap;
+        g_user_config.td_slots[i].hold = td_tap_holds[i].hold;
+    }
     via_update_custom_config(&g_user_config, 0, sizeof(g_user_config));
 }
 
@@ -306,10 +337,52 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 g_user_config.layer1_r = 255; g_user_config.layer1_g = 0;   g_user_config.layer1_b = 0;
                 g_user_config.layer2_r = 0;   g_user_config.layer2_g = 0;   g_user_config.layer2_b = 255;
                 g_user_config.layer3_r = 180; g_user_config.layer3_g = 0;   g_user_config.layer3_b = 255;
+                // Reset TD slots
+                g_user_config.td_slots[0]  = (td_config_slot_t){KC_N, KC_B};
+                g_user_config.td_slots[1]  = (td_config_slot_t){KC_Z, LCTL(KC_Z)};
+                g_user_config.td_slots[2]  = (td_config_slot_t){KC_X, LCTL(KC_X)};
+                g_user_config.td_slots[3]  = (td_config_slot_t){KC_C, LCTL(KC_C)};
+                g_user_config.td_slots[4]  = (td_config_slot_t){KC_V, LCTL(KC_V)};
+                g_user_config.td_slots[5]  = (td_config_slot_t){KC_E, LGUI(KC_E)};
+                g_user_config.td_slots[6]  = (td_config_slot_t){KC_RALT, KC_RCTL};
+                g_user_config.td_slots[7]  = (td_config_slot_t){KC_MINS, KC_EQL};
+                g_user_config.td_slots[8]  = (td_config_slot_t){KC_BSPC, KC_DEL};
+                g_user_config.td_slots[9]  = (td_config_slot_t){KC_SLSH, KC_BSLS};
+                g_user_config.td_slots[10] = (td_config_slot_t){KC_LBRC, KC_RBRC};
                 apply_user_config();
                 save_user_config();
                 data[2] = 1;
                 break;
+
+            case 0x10: { // GET_TD_SLOT (slot = data[2])
+                uint8_t slot = data[2];
+                if (slot < NUM_TD_SLOTS) {
+                    data[3] = (td_tap_holds[slot].tap >> 8) & 0xFF;
+                    data[4] = td_tap_holds[slot].tap & 0xFF;
+                    data[5] = (td_tap_holds[slot].hold >> 8) & 0xFF;
+                    data[6] = td_tap_holds[slot].hold & 0xFF;
+                    data[7] = 1; // success
+                } else {
+                    data[7] = 0;
+                }
+                break;
+            }
+
+            case 0x11: { // SET_TD_SLOT (slot = data[2], tap = data[3..4], hold = data[5..6])
+                uint8_t slot = data[2];
+                if (slot < NUM_TD_SLOTS) {
+                    uint16_t tap  = ((uint16_t)data[3] << 8) | data[4];
+                    uint16_t hold = ((uint16_t)data[5] << 8) | data[6];
+                    td_tap_holds[slot].tap  = tap;
+                    td_tap_holds[slot].hold = hold;
+                    g_user_config.td_slots[slot].tap  = tap;
+                    g_user_config.td_slots[slot].hold = hold;
+                    data[7] = 1; // success
+                } else {
+                    data[7] = 0;
+                }
+                break;
+            }
 
             default:
                 data[1] = 0xFF;

@@ -3,21 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Charybdis 3x6 Web Controller</title>
+  <title>Charybdis 3x6 Web Controller & Tap Dance Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-base: #0c0f17;
-      --bg-surface: #141a29;
-      --bg-card: rgba(26, 34, 52, 0.7);
+      --bg-base: #0a0d14;
+      --bg-card: rgba(20, 27, 44, 0.75);
       --border-color: rgba(66, 85, 125, 0.35);
-      --border-focus: #3b82f6;
       --accent-cyan: #06b6d4;
       --accent-purple: #a855f7;
       --accent-emerald: #10b981;
       --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
       --text-main: #f1f5f9;
       --text-muted: #94a3b8;
       --text-sub: #64748b;
@@ -31,42 +30,42 @@
     }
 
     body {
-      background: radial-gradient(circle at 50% 0%, #17223b 0%, var(--bg-base) 75%);
+      background: radial-gradient(circle at 50% 0%, #16233d 0%, var(--bg-base) 80%);
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 30px 20px 60px;
+      padding: 24px 16px 60px;
     }
 
     header {
       width: 100%;
-      max-width: 1040px;
+      max-width: 1080px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 25px;
-      padding-bottom: 20px;
+      margin-bottom: 22px;
+      padding-bottom: 18px;
       border-bottom: 1px solid var(--border-color);
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
 
     .logo-badge {
-      width: 42px;
-      height: 42px;
+      width: 44px;
+      height: 44px;
       border-radius: 12px;
       background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
-      box-shadow: 0 4px 15px rgba(6, 182, 212, 0.35);
+      font-size: 24px;
+      box-shadow: 0 4px 18px rgba(6, 182, 212, 0.4);
     }
 
     .title-group h1 {
@@ -81,7 +80,7 @@
     .title-group p {
       font-size: 13px;
       color: var(--text-muted);
-      margin-top: 2px;
+      margin-top: 3px;
     }
 
     .connect-box {
@@ -98,7 +97,7 @@
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
-      background: rgba(15, 23, 42, 0.8);
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid var(--border-color);
     }
 
@@ -129,7 +128,7 @@
       background: linear-gradient(135deg, #2563eb, #3b82f6);
       color: white;
       font-size: 14px;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -137,17 +136,17 @@
 
     .btn-connect:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
     }
 
     .btn-connect:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
     }
 
     main {
       width: 100%;
-      max-width: 1040px;
+      max-width: 1080px;
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 20px;
@@ -158,10 +157,14 @@
       backdrop-filter: blur(16px);
       border: 1px solid var(--border-color);
       border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
       position: relative;
       overflow: hidden;
+    }
+
+    .card.full-width {
+      grid-column: span 2;
     }
 
     .card::before {
@@ -171,14 +174,14 @@
       left: 0;
       right: 0;
       height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+      background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), transparent);
     }
 
     .card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     .card-title {
@@ -195,7 +198,7 @@
     }
 
     .control-row {
-      margin-bottom: 22px;
+      margin-bottom: 20px;
     }
 
     .control-row:last-child {
@@ -217,11 +220,11 @@
 
     .value-display {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: var(--accent-cyan);
-      background: rgba(6, 182, 212, 0.1);
-      padding: 2px 8px;
+      background: rgba(6, 182, 212, 0.12);
+      padding: 3px 8px;
       border-radius: 6px;
       border: 1px solid rgba(6, 182, 212, 0.25);
     }
@@ -253,7 +256,7 @@
     .presets {
       display: flex;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
     .preset-btn {
@@ -272,7 +275,6 @@
       border-color: #3b82f6;
     }
 
-    /* Switch Component */
     .switch-container {
       display: flex;
       justify-content: space-between;
@@ -291,7 +293,7 @@
     .switch {
       position: relative;
       display: inline-block;
-      width: 46px;
+      width: 44px;
       height: 24px;
     }
 
@@ -328,7 +330,7 @@
     }
 
     input:checked + .slider:before {
-      transform: translateX(22px);
+      transform: translateX(20px);
     }
 
     /* Color Pickers */
@@ -344,7 +346,7 @@
       flex-direction: column;
       align-items: center;
       padding: 14px 10px;
-      background: rgba(15, 23, 42, 0.4);
+      background: rgba(15, 23, 42, 0.45);
       border: 1px solid var(--border-color);
       border-radius: 10px;
       text-align: center;
@@ -383,12 +385,91 @@
       color: var(--text-muted);
     }
 
-    /* Bottom Action Bar */
+    /* Tap Dance Table */
+    .td-table-wrap {
+      max-height: 380px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    table.td-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    table.td-table th {
+      background: rgba(30, 41, 59, 0.85);
+      padding: 12px 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    table.td-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(66, 85, 125, 0.2);
+      vertical-align: middle;
+    }
+
+    table.td-table tr:hover {
+      background: rgba(59, 130, 246, 0.08);
+    }
+
+    .td-badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .td-select, .td-input {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      width: 100%;
+    }
+
+    .td-select:focus, .td-input:focus {
+      border-color: #38bdf8;
+      outline: none;
+    }
+
+    .btn-apply-slot {
+      padding: 6px 14px;
+      border-radius: 6px;
+      background: rgba(14, 165, 233, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(14, 165, 233, 0.4);
+      font-size: 12px;
+    }
+
+    .btn-apply-slot:hover {
+      background: rgba(14, 165, 233, 0.4);
+      color: #fff;
+    }
+
+    /* Action Bar */
     .action-bar {
       grid-column: span 2;
       display: flex;
       gap: 12px;
-      margin-top: 10px;
+      margin-top: 6px;
     }
 
     .btn-action {
@@ -405,22 +486,22 @@
     .btn-apply {
       background: linear-gradient(135deg, #0ea5e9, #0284c7);
       color: #fff;
-      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35);
     }
 
     .btn-apply:hover:not(:disabled) {
-      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.55);
       transform: translateY(-1px);
     }
 
     .btn-save {
       background: linear-gradient(135deg, #10b981, #059669);
       color: #fff;
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
     }
 
     .btn-save:hover:not(:disabled) {
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.55);
       transform: translateY(-1px);
     }
 
@@ -446,14 +527,14 @@
 
     .log-box {
       grid-column: span 2;
-      background: rgba(10, 15, 26, 0.7);
+      background: rgba(10, 15, 26, 0.8);
       border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 14px 18px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
       color: var(--text-muted);
-      height: 80px;
+      height: 90px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -480,8 +561,8 @@
     <div class="brand">
       <div class="logo-badge">⌨️</div>
       <div class="title-group">
-        <h1>Charybdis 3x6 Controller <span style="font-size:12px; font-weight:normal; background:rgba(59,130,246,0.15); color:#60a5fa; padding:2px 8px; border-radius:12px; border:1px solid rgba(59,130,246,0.3);">WebHID</span></h1>
-        <p>RP2040 Splinktegrated Charybdis 실시간 하드웨어 튜너</p>
+        <h1>Charybdis 3x6 Controller & Tap Dance Studio</h1>
+        <p>RP2040 Splinktegrated Charybdis 실시간 하드웨어 & 탭댄스 튜너</p>
       </div>
     </div>
     <div class="connect-box">
@@ -499,11 +580,8 @@
     <!-- Card 1: Trackball & DPI -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">
-          <span class="icon">🎯</span> 트랙볼 감도 (DPI)
-        </div>
+        <div class="card-title"><span class="icon">🎯</span> 트랙볼 감도 (DPI)</div>
       </div>
-
       <div class="control-row">
         <div class="label-wrap">
           <label for="defaultDpi">기본 이동 감도 (Default DPI)</label>
@@ -517,7 +595,6 @@
           <button class="preset-btn" onclick="setDpi(1600)">1600 (빠름)</button>
         </div>
       </div>
-
       <div class="control-row">
         <div class="label-wrap">
           <label for="snipingDpi">스나이핑 미세 감도 (Sniping DPI)</label>
@@ -530,11 +607,8 @@
     <!-- Card 2: Auto Mouse Layer -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">
-          <span class="icon">🖱️</span> 오토 마우스 레이어 (Auto Mouse)
-        </div>
+        <div class="card-title"><span class="icon">🖱️</span> 오토 마우스 레이어 (Auto Mouse)</div>
       </div>
-
       <div class="control-row">
         <div class="switch-container">
           <span class="switch-label">트랙볼 회전 시 자동 마우스 레이어 진입</span>
@@ -544,7 +618,6 @@
           </label>
         </div>
       </div>
-
       <div class="control-row">
         <div class="label-wrap">
           <label for="autoMouseLayer">진입 목표 레이어</label>
@@ -552,7 +625,6 @@
         </div>
         <input type="range" id="autoMouseLayer" min="1" max="4" step="1" value="3" oninput="document.getElementById('valAutoMouseLayer').textContent = 'Layer ' + this.value">
       </div>
-
       <div class="control-row">
         <div class="label-wrap">
           <label for="autoMouseTime">마우스 모드 유지 시간 (복귀 딜레이)</label>
@@ -570,19 +642,15 @@
     <!-- Card 3: Drag Scroll -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">
-          <span class="icon">📜</span> 드래그 스크롤 (Drag Scroll)
-        </div>
+        <div class="card-title"><span class="icon">📜</span> 드래그 스크롤 (Drag Scroll)</div>
       </div>
-
       <div class="control-row">
         <div class="label-wrap">
-          <label for="dragBuffer">스크롤 민감도 버퍼 (낮을수록 민감/빠름)</label>
+          <label for="dragBuffer">스크롤 민감도 버퍼 (낮을수록 빠름)</label>
           <span class="value-display" id="valDragBuffer">20 버퍼</span>
         </div>
         <input type="range" id="dragBuffer" min="5" max="50" step="1" value="20" oninput="document.getElementById('valDragBuffer').textContent = this.value + ' 버퍼'">
       </div>
-
       <div class="control-row">
         <div class="switch-container">
           <span class="switch-label">Y축 스크롤 방향 반전 (Natural / Mac 스타일)</span>
@@ -597,11 +665,8 @@
     <!-- Card 4: Layer RGB Indicators -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">
-          <span class="icon">🎨</span> 레이어별 RGB 인디케이터 색상
-        </div>
+        <div class="card-title"><span class="icon">🎨</span> 레이어별 RGB 인디케이터 색상</div>
       </div>
-
       <div class="rgb-grid">
         <div class="rgb-item">
           <label>Layer 1 (F열/Nav)</label>
@@ -610,7 +675,6 @@
           </div>
           <span class="hex-text" id="hexL1">#FF0000</span>
         </div>
-
         <div class="rgb-item">
           <label>Layer 2 (숫자/텐키)</label>
           <div class="color-swatch-wrap">
@@ -618,7 +682,6 @@
           </div>
           <span class="hex-text" id="hexL2">#0000FF</span>
         </div>
-
         <div class="rgb-item">
           <label>Layer 3 (마우스)</label>
           <div class="color-swatch-wrap">
@@ -629,17 +692,46 @@
       </div>
     </div>
 
-    <!-- Actions -->
+    <!-- Card 5: Tap Dance Live Editor -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">⚡</span> 탭댄스 실시간 편집기 (Tap Dance Live Studio)
+        </div>
+        <div style="font-size:12px; color:var(--text-muted);">
+          * 슬롯별 단타(Tap) 및 홀드(Hold) 키를 마우스로 변경하고 즉시 적용할 수 있습니다.
+        </div>
+      </div>
+
+      <div class="td-table-wrap">
+        <table class="td-table">
+          <thead>
+            <tr>
+              <th style="width: 100px;">슬롯</th>
+              <th style="width: 120px;">VIA 코드</th>
+              <th>단타 키 (Tap)</th>
+              <th>길게 누름 키 (Hold)</th>
+              <th style="width: 100px; text-align: center;">개별 적용</th>
+            </tr>
+          </thead>
+          <tbody id="tdTableBody">
+            <!-- Dynamically generated 11 rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bottom Actions -->
     <div class="action-bar">
-      <button class="btn-action btn-read" onclick="readFromKeyboard()">📥 키보드에서 읽기</button>
-      <button class="btn-action btn-apply" onclick="applyToKeyboard()">⚡ 즉시 적용</button>
+      <button class="btn-action btn-read" onclick="readFromKeyboard()">📥 키보드 전체 읽기</button>
+      <button class="btn-action btn-apply" onclick="applyToKeyboard()">⚡ 전체 즉시 적용</button>
       <button class="btn-action btn-save" onclick="saveToEEPROM()">💾 영구 저장 (EEPROM)</button>
       <button class="btn-action btn-reset" onclick="resetDefaults()">🔄 기본값 리셋</button>
     </div>
 
     <!-- Log Console -->
     <div class="log-box" id="logBox">
-      <div class="log-line"><span class="log-time">[시스템]</span> <span class="log-msg info">Charybdis 3x6 Web Controller가 준비되었습니다. '키보드 연결'을 눌러주세요.</span></div>
+      <div class="log-line"><span class="log-time">[시스템]</span> <span class="log-msg info">Charybdis 3x6 Controller & Tap Dance Studio 준비 완료. '키보드 연결'을 눌러주세요.</span></div>
     </div>
   </main>
 
@@ -648,6 +740,80 @@
     const USAGE_PAGE = 0xFF60;
     const USAGE = 0x61;
     const CHARYBDIS_CMD = 0xFC;
+
+    // Common QMK Keycodes Dictionary
+    const KEYCODE_PRESETS = [
+      { name: "A", code: 0x0004 }, { name: "B", code: 0x0005 }, { name: "C", code: 0x0006 }, { name: "D", code: 0x0007 },
+      { name: "E", code: 0x0008 }, { name: "F", code: 0x0009 }, { name: "G", code: 0x000A }, { name: "H", code: 0x000B },
+      { name: "I", code: 0x000C }, { name: "J", code: 0x000D }, { name: "K", code: 0x000E }, { name: "L", code: 0x000F },
+      { name: "M", code: 0x0010 }, { name: "N", code: 0x0011 }, { name: "O", code: 0x0012 }, { name: "P", code: 0x0013 },
+      { name: "Q", code: 0x0014 }, { name: "R", code: 0x0015 }, { name: "S", code: 0x0016 }, { name: "T", code: 0x0017 },
+      { name: "U", code: 0x0018 }, { name: "V", code: 0x0019 }, { name: "W", code: 0x001A }, { name: "X", code: 0x001B },
+      { name: "Y", code: 0x001C }, { name: "Z", code: 0x001D },
+      { name: "1", code: 0x001E }, { name: "2", code: 0x001F }, { name: "3", code: 0x0020 }, { name: "4", code: 0x0021 },
+      { name: "5", code: 0x0022 }, { name: "6", code: 0x0023 }, { name: "7", code: 0x0024 }, { name: "8", code: 0x0025 },
+      { name: "9", code: 0x0026 }, { name: "0", code: 0x0027 },
+      { name: "Enter", code: 0x0028 }, { name: "Esc", code: 0x0029 }, { name: "Backspace", code: 0x002A },
+      { name: "Tab", code: 0x002B }, { name: "Space", code: 0x002C }, { name: "- (Minus)", code: 0x002D },
+      { name: "= (Equal)", code: 0x002E }, { name: "[ (L Bracket)", code: 0x002F }, { name: "] (R Bracket)", code: 0x0030 },
+      { name: "\\ (Backslash)", code: 0x0031 }, { name: "/ (Slash)", code: 0x0038 }, { name: "Delete", code: 0x004C },
+      { name: "Right Alt (한/영)", code: 0x00E6 }, { name: "Right Ctrl", code: 0x00E4 },
+      // Shortcuts
+      { name: "Ctrl + Z (실행 취소)", code: 0x011D },
+      { name: "Ctrl + X (잘라내기)", code: 0x011B },
+      { name: "Ctrl + C (복사)", code: 0x0106 },
+      { name: "Ctrl + V (붙여넣기)", code: 0x0119 },
+      { name: "Win + E (탐색기)", code: 0x0808 },
+      { name: "Ctrl + A (전체선택)", code: 0x0104 },
+      { name: "Ctrl + S (저장)", code: 0x0116 },
+      { name: "Ctrl + F (찾기)", code: 0x0109 },
+      { name: "Alt + F4 (종료)", code: 0x043D },
+      { name: "Alt + Tab (작업전환)", code: 0x042B }
+    ];
+
+    // Default Tap Dance table data matching dd.vil
+    let tdSlots = [
+      { tap: 0x0011, hold: 0x0005 }, // TD 0: N -> B
+      { tap: 0x001D, hold: 0x011D }, // TD 1: Z -> Ctrl+Z
+      { tap: 0x001B, hold: 0x011B }, // TD 2: X -> Ctrl+X
+      { tap: 0x0006, hold: 0x0106 }, // TD 3: C -> Ctrl+C
+      { tap: 0x0019, hold: 0x0119 }, // TD 4: V -> Ctrl+V
+      { tap: 0x0008, hold: 0x0808 }, // TD 5: E -> Win+E
+      { tap: 0x00E6, hold: 0x00E4 }, // TD 6: RAlt -> RCtrl
+      { tap: 0x002D, hold: 0x002E }, // TD 7: - -> =
+      { tap: 0x002A, hold: 0x004C }, // TD 8: Backspace -> Delete
+      { tap: 0x0038, hold: 0x0031 }, // TD 9: / -> \
+      { tap: 0x002F, hold: 0x0030 }, // TD 10: [ -> ]
+    ];
+
+    function renderTdTable() {
+      const tbody = document.getElementById('tdTableBody');
+      tbody.innerHTML = '';
+
+      tdSlots.forEach((slot, i) => {
+        const tr = document.createElement('tr');
+        const hexVia = '0x' + (0x5700 + i).toString(16).toUpperCase();
+
+        tr.innerHTML = `
+          <td><span class="td-badge">TD ${i}</span></td>
+          <td style="font-family:'JetBrains Mono', monospace; color:var(--accent-amber);">${hexVia}</td>
+          <td>
+            <select class="td-select" id="tdTapSelect_${i}" onchange="tdSlots[${i}].tap = parseInt(this.value)">
+              ${KEYCODE_PRESETS.map(k => `<option value="${k.code}" ${k.code === slot.tap ? 'selected' : ''}>${k.name} (0x${k.code.toString(16).padStart(4, '0').toUpperCase()})</option>`).join('')}
+            </select>
+          </td>
+          <td>
+            <select class="td-select" id="tdHoldSelect_${i}" onchange="tdSlots[${i}].hold = parseInt(this.value)">
+              ${KEYCODE_PRESETS.map(k => `<option value="${k.code}" ${k.code === slot.hold ? 'selected' : ''}>${k.name} (0x${k.code.toString(16).padStart(4, '0').toUpperCase()})</option>`).join('')}
+            </select>
+          </td>
+          <td style="text-align:center;">
+            <button class="btn-apply-slot" onclick="applySingleTdSlot(${i})">적용</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
     function log(msg, type = 'info') {
       const box = document.getElementById('logBox');
@@ -714,7 +880,6 @@
 
         log(`키보드 연결 성공: ${device.productName} (VID: ${device.vendorId.toString(16)}, PID: ${device.productId.toString(16)})`, "success");
 
-        // 연결 후 키보드에서 현재 설정 즉시 읽어오기
         setTimeout(readFromKeyboard, 300);
 
       } catch (err) {
@@ -728,7 +893,6 @@
 
       const sub = data[1];
       if (sub === 0x01) {
-        // GET_CONFIG Response
         const defaultDpi = (data[2] << 8) | data[3];
         const snipingDpi = (data[4] << 8) | data[5];
         const autoEn = data[6] !== 0;
@@ -760,14 +924,29 @@
         document.getElementById('colLayer3').value = l3Hex;
         updateHexText('hexL3', l3Hex);
 
-        log("키보드로부터 현재 설정을 완벽히 동기화했습니다.", "success");
+        log("키보드 하드웨어 설정을 동기화했습니다. 탭댄스 슬롯 읽는 중...", "info");
+        readAllTdSlots();
       } else if (sub === 0x02) {
-        log("키보드에 설정이 즉시 반영되었습니다.", "success");
+        log("키보드 하드웨어 설정이 즉시 반영되었습니다.", "success");
       } else if (sub === 0x03) {
-        log("키보드 내부 EEPROM에 영구 저장되었습니다! (재부팅해도 유지)", "success");
+        log("키보드 내부 EEPROM에 모든 설정이 영구 저장되었습니다!", "success");
       } else if (sub === 0x04) {
         log("기본값으로 초기화되었습니다.", "info");
         readFromKeyboard();
+      } else if (sub === 0x10) {
+        // GET_TD_SLOT response
+        const slot = data[2];
+        const tap = (data[3] << 8) | data[4];
+        const hold = (data[5] << 8) | data[6];
+        if (slot < tdSlots.length) {
+          tdSlots[slot].tap = tap;
+          tdSlots[slot].hold = hold;
+          renderTdTable();
+        }
+      } else if (sub === 0x11) {
+        // SET_TD_SLOT response
+        const slot = data[2];
+        log(`TD ${slot} 슬롯이 키보드에 실시간 반영되었습니다!`, "success");
       }
     }
 
@@ -796,6 +975,30 @@
       sendCommand(0x01);
     }
 
+    function readAllTdSlots() {
+      for (let i = 0; i < 11; i++) {
+        setTimeout(() => {
+          sendCommand(0x10, [i]);
+        }, i * 40);
+      }
+    }
+
+    function applySingleTdSlot(slot) {
+      const tap = tdSlots[slot].tap;
+      const hold = tdSlots[slot].hold;
+      log(`TD ${slot} 슬롯 적용 중 (Tap: 0x${tap.toString(16)}, Hold: 0x${hold.toString(16)})...`, "info");
+      sendCommand(0x11, [slot, (tap >> 8) & 0xFF, tap & 0xFF, (hold >> 8) & 0xFF, hold & 0xFF]);
+    }
+
+    function applyAllTdSlots() {
+      log("모든 탭댄스 슬롯을 키보드에 전송 중...", "info");
+      for (let i = 0; i < tdSlots.length; i++) {
+        setTimeout(() => {
+          applySingleTdSlot(i);
+        }, i * 50);
+      }
+    }
+
     function applyToKeyboard() {
       const defaultDpi = parseInt(document.getElementById('defaultDpi').value);
       const snipingDpi = parseInt(document.getElementById('snipingDpi').value);
@@ -822,8 +1025,9 @@
         l3.r, l3.g, l3.b
       ];
 
-      log("설정을 키보드에 적용하는 중...", "info");
+      log("하드웨어 설정을 키보드에 적용하는 중...", "info");
       sendCommand(0x02, payload);
+      setTimeout(applyAllTdSlots, 300);
     }
 
     function saveToEEPROM() {
@@ -831,14 +1035,17 @@
       setTimeout(() => {
         log("EEPROM 영구 저장 요청 전송...", "info");
         sendCommand(0x03);
-      }, 100);
+      }, 500);
     }
 
     function resetDefaults() {
-      if (confirm("모든 설정을 공장 기본값(Default)으로 초기화하시겠습니까?")) {
+      if (confirm("모든 설정을 공장 기본값으로 초기화하시겠습니까?")) {
         sendCommand(0x04);
       }
     }
+
+    // Init table on load
+    renderTdTable();
   </script>
 </body>
 </html>
