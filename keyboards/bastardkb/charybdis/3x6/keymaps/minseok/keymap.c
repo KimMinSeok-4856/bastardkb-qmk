@@ -9,6 +9,10 @@
  */
 
 #include QMK_KEYBOARD_H
+#include "raw_hid.h"
+#include "via.h"
+#include "pointing_device_auto_mouse.h"
+#include "charybdis.h"
 
 // Tap Dance indexes
 enum tap_dance_indexes {
@@ -158,36 +162,192 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-// Layer-dependent RGB Matrix Indicators
-// Layer 1: Red (255, 0, 0)
-// Layer 2: Blue (0, 0, 255)
-// Layer 3: Purple (180, 0, 255)
+// Charybdis WebHID Custom Configuration Struct (32 bytes)
+#define CHARYBDIS_CONFIG_MAGIC 0xCB
+#define CHARYBDIS_CONFIG_VERSION 1
+
+typedef struct {
+    uint8_t magic;
+    uint8_t version;
+    uint16_t default_dpi;
+    uint16_t sniping_dpi;
+    uint8_t auto_mouse_en;
+    uint8_t auto_mouse_layer;
+    uint16_t auto_mouse_time;
+    uint8_t dragscroll_buffer;
+    uint8_t dragscroll_rev_y;
+    uint8_t layer1_r;
+    uint8_t layer1_g;
+    uint8_t layer1_b;
+    uint8_t layer2_r;
+    uint8_t layer2_g;
+    uint8_t layer2_b;
+    uint8_t layer3_r;
+    uint8_t layer3_g;
+    uint8_t layer3_b;
+    uint8_t reserved[12];
+} charybdis_user_config_t;
+
+static charybdis_user_config_t g_user_config = {
+    .magic = CHARYBDIS_CONFIG_MAGIC,
+    .version = CHARYBDIS_CONFIG_VERSION,
+    .default_dpi = 800,
+    .sniping_dpi = 200,
+    .auto_mouse_en = 1,
+    .auto_mouse_layer = 3,
+    .auto_mouse_time = 650,
+    .dragscroll_buffer = 20,
+    .dragscroll_rev_y = 1,
+    .layer1_r = 255, .layer1_g = 0, .layer1_b = 0,
+    .layer2_r = 0, .layer2_g = 0, .layer2_b = 255,
+    .layer3_r = 180, .layer3_g = 0, .layer3_b = 255
+};
+
+void apply_user_config(void) {
+    if (g_user_config.default_dpi >= 200 && g_user_config.default_dpi <= 3200) {
+        pointing_device_set_cpi(g_user_config.default_dpi);
+    }
+    set_auto_mouse_enable(g_user_config.auto_mouse_en != 0);
+    set_auto_mouse_layer(g_user_config.auto_mouse_layer);
+    if (g_user_config.auto_mouse_time >= 100) {
+        set_auto_mouse_timeout(g_user_config.auto_mouse_time);
+    }
+    if (g_user_config.dragscroll_buffer >= 1) {
+        g_charybdis_dragscroll_buffer_size = g_user_config.dragscroll_buffer;
+    }
+    g_charybdis_dragscroll_reverse_y = (g_user_config.dragscroll_rev_y != 0);
+}
+
+void load_user_config(void) {
+    charybdis_user_config_t loaded;
+    if (via_read_custom_config(&loaded, 0, sizeof(loaded)) == sizeof(loaded)) {
+        if (loaded.magic == CHARYBDIS_CONFIG_MAGIC && loaded.version == CHARYBDIS_CONFIG_VERSION) {
+            g_user_config = loaded;
+        }
+    }
+    apply_user_config();
+}
+
+void save_user_config(void) {
+    g_user_config.magic = CHARYBDIS_CONFIG_MAGIC;
+    g_user_config.version = CHARYBDIS_CONFIG_VERSION;
+    via_update_custom_config(&g_user_config, 0, sizeof(g_user_config));
+}
+
+void keyboard_post_init_user(void) {
+    load_user_config();
+}
+
+void pointing_device_init_user(void) {
+    apply_user_config();
+}
+
+// WebHID custom packet receiver (Intercepts 0xFC, forwards everything else to VIA)
+bool via_command_kb(uint8_t *data, uint8_t length) {
+    if (data[0] == 0xFC) {
+        uint8_t subcommand = data[1];
+        switch (subcommand) {
+            case 0x01: // GET_CONFIG
+                data[2]  = (g_user_config.default_dpi >> 8) & 0xFF;
+                data[3]  = g_user_config.default_dpi & 0xFF;
+                data[4]  = (g_user_config.sniping_dpi >> 8) & 0xFF;
+                data[5]  = g_user_config.sniping_dpi & 0xFF;
+                data[6]  = g_user_config.auto_mouse_en;
+                data[7]  = g_user_config.auto_mouse_layer;
+                data[8]  = (g_user_config.auto_mouse_time >> 8) & 0xFF;
+                data[9]  = g_user_config.auto_mouse_time & 0xFF;
+                data[10] = g_user_config.dragscroll_buffer;
+                data[11] = g_user_config.dragscroll_rev_y;
+                data[12] = g_user_config.layer1_r;
+                data[13] = g_user_config.layer1_g;
+                data[14] = g_user_config.layer1_b;
+                data[15] = g_user_config.layer2_r;
+                data[16] = g_user_config.layer2_g;
+                data[17] = g_user_config.layer2_b;
+                data[18] = g_user_config.layer3_r;
+                data[19] = g_user_config.layer3_g;
+                data[20] = g_user_config.layer3_b;
+                break;
+
+            case 0x02: // SET_CONFIG (Live apply)
+                g_user_config.default_dpi       = ((uint16_t)data[2] << 8) | data[3];
+                g_user_config.sniping_dpi       = ((uint16_t)data[4] << 8) | data[5];
+                g_user_config.auto_mouse_en     = data[6];
+                g_user_config.auto_mouse_layer  = data[7];
+                g_user_config.auto_mouse_time   = ((uint16_t)data[8] << 8) | data[9];
+                g_user_config.dragscroll_buffer = data[10];
+                g_user_config.dragscroll_rev_y  = data[11];
+                g_user_config.layer1_r          = data[12];
+                g_user_config.layer1_g          = data[13];
+                g_user_config.layer1_b          = data[14];
+                g_user_config.layer2_r          = data[15];
+                g_user_config.layer2_g          = data[16];
+                g_user_config.layer2_b          = data[17];
+                g_user_config.layer3_r          = data[18];
+                g_user_config.layer3_g          = data[19];
+                g_user_config.layer3_b          = data[20];
+                apply_user_config();
+                data[2] = 1; // success
+                break;
+
+            case 0x03: // SAVE_EEPROM
+                save_user_config();
+                data[2] = 1; // success
+                break;
+
+            case 0x04: // RESET_CONFIG
+                g_user_config.default_dpi       = 800;
+                g_user_config.sniping_dpi       = 200;
+                g_user_config.auto_mouse_en     = 1;
+                g_user_config.auto_mouse_layer  = 3;
+                g_user_config.auto_mouse_time   = 650;
+                g_user_config.dragscroll_buffer = 20;
+                g_user_config.dragscroll_rev_y  = 1;
+                g_user_config.layer1_r = 255; g_user_config.layer1_g = 0;   g_user_config.layer1_b = 0;
+                g_user_config.layer2_r = 0;   g_user_config.layer2_g = 0;   g_user_config.layer2_b = 255;
+                g_user_config.layer3_r = 180; g_user_config.layer3_g = 0;   g_user_config.layer3_b = 255;
+                apply_user_config();
+                save_user_config();
+                data[2] = 1;
+                break;
+
+            default:
+                data[1] = 0xFF;
+                break;
+        }
+        raw_hid_send(data, length);
+        return true;
+    }
+    return false;
+}
+
+// Layer-dependent RGB Matrix Indicators (Dynamic live colors)
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     uint8_t current_layer = get_highest_layer(layer_state);
 
     switch (current_layer) {
-        case 1: // 1번 레이어: 빨강 (Red)
+        case 1: // 1번 레이어
             for (uint8_t i = led_min; i < led_max; i++) {
-                rgb_matrix_set_color(i, 255, 0, 0);
+                rgb_matrix_set_color(i, g_user_config.layer1_r, g_user_config.layer1_g, g_user_config.layer1_b);
             }
             break;
 
-        case 2: // 2번 레이어: 파랑 (Blue)
+        case 2: // 2번 레이어
             for (uint8_t i = led_min; i < led_max; i++) {
-                rgb_matrix_set_color(i, 0, 0, 255);
+                rgb_matrix_set_color(i, g_user_config.layer2_r, g_user_config.layer2_g, g_user_config.layer2_b);
             }
             break;
 
-        case 3: // 3번 레이어: 보라 (Purple)
+        case 3: // 3번 레이어
             for (uint8_t i = led_min; i < led_max; i++) {
-                rgb_matrix_set_color(i, 180, 0, 255);
+                rgb_matrix_set_color(i, g_user_config.layer3_r, g_user_config.layer3_g, g_user_config.layer3_b);
             }
             break;
 
         default:
-            // 0번 기본 레이어는 설정된 기본 효과/색상 유지
             break;
     }
 
     return false;
 }
+

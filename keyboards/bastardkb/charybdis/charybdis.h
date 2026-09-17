@@ -108,4 +108,7 @@ bool charybdis_get_pointer_dragscroll_enabled(void);
  * are translated into horizontal and vertical scroll movements.
  */
 void charybdis_set_pointer_dragscroll_enabled(bool enable);
+
+extern uint8_t g_charybdis_dragscroll_buffer_size;
+extern bool g_charybdis_dragscroll_reverse_y;
 #endif // POINTING_DEVICE_ENABLE

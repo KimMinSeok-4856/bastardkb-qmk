@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Charybdis 3x6 Web Controller</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0c0f17;
+      --bg-surface: #141a29;
+      --bg-card: rgba(26, 34, 52, 0.7);
+      --border-color: rgba(66, 85, 125, 0.35);
+      --border-focus: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-purple: #a855f7;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-sub: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #17223b 0%, var(--bg-base) 75%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px 60px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1040px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 15px rgba(6, 182, 212, 0.35);
+    }
+
+    .title-group h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-group p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .connect-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent-rose);
+      box-shadow: 0 0 8px var(--accent-rose);
+    }
+
+    .status-badge.connected .status-dot {
+      background: var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald);
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-weight: 600;
+    }
+
+    .btn-connect {
+      padding: 10px 22px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: white;
+      font-size: 14px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-connect:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-connect:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    main {
+      width: 100%;
+      max-width: 1040px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+    }
+
+    .card-title span.icon {
+      font-size: 18px;
+    }
+
+    .control-row {
+      margin-bottom: 22px;
+    }
+
+    .control-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .label-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .label-wrap label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .value-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.1);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(6, 182, 212, 0.25);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 5px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 10px #0284c7;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .presets {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .preset-btn {
+      flex: 1;
+      padding: 6px 0;
+      font-size: 12px;
+      background: rgba(51, 65, 85, 0.4);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    .preset-btn:hover {
+      background: rgba(59, 130, 246, 0.2);
+      color: #fff;
+      border-color: #3b82f6;
+    }
+
+    /* Switch Component */
+    .switch-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.45);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+    }
+
+    .switch-label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 46px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-emerald);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+
+    /* Color Pickers */
+    .rgb-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .rgb-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 10px;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      text-align: center;
+      gap: 8px;
+    }
+
+    .rgb-item label {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .color-swatch-wrap {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    input[type="color"] {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      width: 64px;
+      height: 64px;
+      border: none;
+      cursor: pointer;
+      background: none;
+    }
+
+    .hex-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Bottom Action Bar */
+    .action-bar {
+      grid-column: span 2;
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 14px 0;
+      border-radius: 12px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-apply {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+    }
+
+    .btn-apply:hover:not(:disabled) {
+      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-save {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-save:hover:not(:disabled) {
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-read {
+      background: rgba(51, 65, 85, 0.5);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-read:hover:not(:disabled) {
+      background: rgba(71, 85, 105, 0.7);
+    }
+
+    .btn-reset {
+      background: rgba(225, 29, 72, 0.15);
+      color: #fb7185;
+      border: 1px solid rgba(225, 29, 72, 0.3);
+    }
+
+    .btn-reset:hover:not(:disabled) {
+      background: rgba(225, 29, 72, 0.3);
+    }
+
+    .log-box {
+      grid-column: span 2;
+      background: rgba(10, 15, 26, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      height: 80px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-time {
+      color: var(--text-sub);
+    }
+
+    .log-msg.success { color: #34d399; }
+    .log-msg.error { color: #f87171; }
+    .log-msg.info { color: #60a5fa; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="logo-badge">⌨️</div>
+      <div class="title-group">
+        <h1>Charybdis 3x6 Controller <span style="font-size:12px; font-weight:normal; background:rgba(59,130,246,0.15); color:#60a5fa; padding:2px 8px; border-radius:12px; border:1px solid rgba(59,130,246,0.3);">WebHID</span></h1>
+        <p>RP2040 Splinktegrated Charybdis 실시간 하드웨어 튜너</p>
+      </div>
+    </div>
+    <div class="connect-box">
+      <div id="statusBadge" class="status-badge">
+        <div class="status-dot"></div>
+        <span id="statusText">연결 대기 중</span>
+      </div>
+      <button id="btnConnect" class="btn-connect" onclick="connectKeyboard()">
+        <span>⚡ 키보드 연결</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Card 1: Trackball & DPI -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🎯</span> 트랙볼 감도 (DPI)
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="label-wrap">
+          <label for="defaultDpi">기본 이동 감도 (Default DPI)</label>
+          <span class="value-display" id="valDefaultDpi">800 DPI</span>
+        </div>
+        <input type="range" id="defaultDpi" min="200" max="2400" step="50" value="800" oninput="updateDpiDisplay(this.value)">
+        <div class="presets">
+          <button class="preset-btn" onclick="setDpi(600)">600 (정밀)</button>
+          <button class="preset-btn" onclick="setDpi(800)">800 (기본)</button>
+          <button class="preset-btn" onclick="setDpi(1200)">1200 (쾌적)</button>
+          <button class="preset-btn" onclick="setDpi(1600)">1600 (빠름)</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="label-wrap">
+          <label for="snipingDpi">스나이핑 미세 감도 (Sniping DPI)</label>
+          <span class="value-display" id="valSnipingDpi">200 DPI</span>
+        </div>
+        <input type="range" id="snipingDpi" min="100" max="1000" step="50" value="200" oninput="document.getElementById('valSnipingDpi').textContent = this.value + ' DPI'">
+      </div>
+    </div>
+
+    <!-- Card 2: Auto Mouse Layer -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🖱️</span> 오토 마우스 레이어 (Auto Mouse)
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="switch-container">
+          <span class="switch-label">트랙볼 회전 시 자동 마우스 레이어 진입</span>
+          <label class="switch">
+            <input type="checkbox" id="autoMouseEn" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="label-wrap">
+          <label for="autoMouseLayer">진입 목표 레이어</label>
+          <span class="value-display" id="valAutoMouseLayer">Layer 3</span>
+        </div>
+        <input type="range" id="autoMouseLayer" min="1" max="4" step="1" value="3" oninput="document.getElementById('valAutoMouseLayer').textContent = 'Layer ' + this.value">
+      </div>
+
+      <div class="control-row">
+        <div class="label-wrap">
+          <label for="autoMouseTime">마우스 모드 유지 시간 (복귀 딜레이)</label>
+          <span class="value-display" id="valAutoMouseTime">650 ms</span>
+        </div>
+        <input type="range" id="autoMouseTime" min="200" max="1500" step="50" value="650" oninput="document.getElementById('valAutoMouseTime').textContent = this.value + ' ms'">
+        <div class="presets">
+          <button class="preset-btn" onclick="setAutoTime(400)">400ms (즉시 복귀)</button>
+          <button class="preset-btn" onclick="setAutoTime(650)">650ms (표준)</button>
+          <button class="preset-btn" onclick="setAutoTime(1000)">1000ms (여유)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Drag Scroll -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">📜</span> 드래그 스크롤 (Drag Scroll)
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="label-wrap">
+          <label for="dragBuffer">스크롤 민감도 버퍼 (낮을수록 민감/빠름)</label>
+          <span class="value-display" id="valDragBuffer">20 버퍼</span>
+        </div>
+        <input type="range" id="dragBuffer" min="5" max="50" step="1" value="20" oninput="document.getElementById('valDragBuffer').textContent = this.value + ' 버퍼'">
+      </div>
+
+      <div class="control-row">
+        <div class="switch-container">
+          <span class="switch-label">Y축 스크롤 방향 반전 (Natural / Mac 스타일)</span>
+          <label class="switch">
+            <input type="checkbox" id="dragRevY" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Layer RGB Indicators -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🎨</span> 레이어별 RGB 인디케이터 색상
+        </div>
+      </div>
+
+      <div class="rgb-grid">
+        <div class="rgb-item">
+          <label>Layer 1 (F열/Nav)</label>
+          <div class="color-swatch-wrap">
+            <input type="color" id="colLayer1" value="#ff0000" oninput="updateHexText('hexL1', this.value)">
+          </div>
+          <span class="hex-text" id="hexL1">#FF0000</span>
+        </div>
+
+        <div class="rgb-item">
+          <label>Layer 2 (숫자/텐키)</label>
+          <div class="color-swatch-wrap">
+            <input type="color" id="colLayer2" value="#0000ff" oninput="updateHexText('hexL2', this.value)">
+          </div>
+          <span class="hex-text" id="hexL2">#0000FF</span>
+        </div>
+
+        <div class="rgb-item">
+          <label>Layer 3 (마우스)</label>
+          <div class="color-swatch-wrap">
+            <input type="color" id="colLayer3" value="#b400ff" oninput="updateHexText('hexL3', this.value)">
+          </div>
+          <span class="hex-text" id="hexL3">#B400FF</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-bar">
+      <button class="btn-action btn-read" onclick="readFromKeyboard()">📥 키보드에서 읽기</button>
+      <button class="btn-action btn-apply" onclick="applyToKeyboard()">⚡ 즉시 적용</button>
+      <button class="btn-action btn-save" onclick="saveToEEPROM()">💾 영구 저장 (EEPROM)</button>
+      <button class="btn-action btn-reset" onclick="resetDefaults()">🔄 기본값 리셋</button>
+    </div>
+
+    <!-- Log Console -->
+    <div class="log-box" id="logBox">
+      <div class="log-line"><span class="log-time">[시스템]</span> <span class="log-msg info">Charybdis 3x6 Web Controller가 준비되었습니다. '키보드 연결'을 눌러주세요.</span></div>
+    </div>
+  </main>
+
+  <script>
+    let device = null;
+    const USAGE_PAGE = 0xFF60;
+    const USAGE = 0x61;
+    const CHARYBDIS_CMD = 0xFC;
+
+    function log(msg, type = 'info') {
+      const box = document.getElementById('logBox');
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-msg ${type}">${msg}</span>`;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function updateDpiDisplay(val) {
+      document.getElementById('valDefaultDpi').textContent = val + ' DPI';
+    }
+
+    function setDpi(val) {
+      document.getElementById('defaultDpi').value = val;
+      updateDpiDisplay(val);
+    }
+
+    function setAutoTime(val) {
+      document.getElementById('autoMouseTime').value = val;
+      document.getElementById('valAutoMouseTime').textContent = val + ' ms';
+    }
+
+    function updateHexText(id, color) {
+      document.getElementById(id).textContent = color.toUpperCase();
+    }
+
+    function hexToRgb(hex) {
+      const c = parseInt(hex.replace('#', ''), 16);
+      return { r: (c >> 16) & 255, g: (c >> 8) & 255, b: c & 255 };
+    }
+
+    function rgbToHex(r, g, b) {
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    async function connectKeyboard() {
+      if (!navigator.hid) {
+        alert("이 브라우저는 WebHID를 지원하지 않습니다. 최신 Chrome 또는 Edge 브라우저를 사용해 주세요.");
+        return;
+      }
+
+      try {
+        const devices = await navigator.hid.requestDevice({
+          filters: [{ usagePage: USAGE_PAGE, usage: USAGE }]
+        });
+
+        if (devices.length === 0) {
+          log("선택된 키보드가 없습니다.", "error");
+          return;
+        }
+
+        device = devices[0];
+        await device.open();
+
+        document.getElementById('statusBadge').classList.add('connected');
+        document.getElementById('statusText').textContent = device.productName || 'Charybdis 연결됨';
+        document.getElementById('btnConnect').innerHTML = '<span>✅ 연결 완료</span>';
+        document.getElementById('btnConnect').disabled = true;
+
+        device.addEventListener("inputreport", handleInputReport);
+
+        log(`키보드 연결 성공: ${device.productName} (VID: ${device.vendorId.toString(16)}, PID: ${device.productId.toString(16)})`, "success");
+
+        // 연결 후 키보드에서 현재 설정 즉시 읽어오기
+        setTimeout(readFromKeyboard, 300);
+
+      } catch (err) {
+        log(`연결 실패: ${err.message}`, "error");
+      }
+    }
+
+    function handleInputReport(event) {
+      const data = new Uint8Array(event.data.buffer);
+      if (data[0] !== CHARYBDIS_CMD) return;
+
+      const sub = data[1];
+      if (sub === 0x01) {
+        // GET_CONFIG Response
+        const defaultDpi = (data[2] << 8) | data[3];
+        const snipingDpi = (data[4] << 8) | data[5];
+        const autoEn = data[6] !== 0;
+        const autoLayer = data[7];
+        const autoTime = (data[8] << 8) | data[9];
+        const dragBuffer = data[10];
+        const dragRevY = data[11] !== 0;
+        const l1Hex = rgbToHex(data[12], data[13], data[14]);
+        const l2Hex = rgbToHex(data[15], data[16], data[17]);
+        const l3Hex = rgbToHex(data[18], data[19], data[20]);
+
+        setDpi(defaultDpi);
+        document.getElementById('snipingDpi').value = snipingDpi;
+        document.getElementById('valSnipingDpi').textContent = snipingDpi + ' DPI';
+
+        document.getElementById('autoMouseEn').checked = autoEn;
+        document.getElementById('autoMouseLayer').value = autoLayer;
+        document.getElementById('valAutoMouseLayer').textContent = 'Layer ' + autoLayer;
+        setAutoTime(autoTime);
+
+        document.getElementById('dragBuffer').value = dragBuffer;
+        document.getElementById('valDragBuffer').textContent = dragBuffer + ' 버퍼';
+        document.getElementById('dragRevY').checked = dragRevY;
+
+        document.getElementById('colLayer1').value = l1Hex;
+        updateHexText('hexL1', l1Hex);
+        document.getElementById('colLayer2').value = l2Hex;
+        updateHexText('hexL2', l2Hex);
+        document.getElementById('colLayer3').value = l3Hex;
+        updateHexText('hexL3', l3Hex);
+
+        log("키보드로부터 현재 설정을 완벽히 동기화했습니다.", "success");
+      } else if (sub === 0x02) {
+        log("키보드에 설정이 즉시 반영되었습니다.", "success");
+      } else if (sub === 0x03) {
+        log("키보드 내부 EEPROM에 영구 저장되었습니다! (재부팅해도 유지)", "success");
+      } else if (sub === 0x04) {
+        log("기본값으로 초기화되었습니다.", "info");
+        readFromKeyboard();
+      }
+    }
+
+    async function sendCommand(subcommand, payload = []) {
+      if (!device || !device.opened) {
+        log("키보드가 연결되어 있지 않습니다.", "error");
+        return;
+      }
+
+      const packet = new Uint8Array(32);
+      packet[0] = CHARYBDIS_CMD;
+      packet[1] = subcommand;
+      for (let i = 0; i < payload.length; i++) {
+        packet[2 + i] = payload[i];
+      }
+
+      try {
+        await device.sendReport(0, packet);
+      } catch (err) {
+        log(`패킷 전송 오류: ${err.message}`, "error");
+      }
+    }
+
+    function readFromKeyboard() {
+      log("키보드에서 설정값을 불러오는 중...", "info");
+      sendCommand(0x01);
+    }
+
+    function applyToKeyboard() {
+      const defaultDpi = parseInt(document.getElementById('defaultDpi').value);
+      const snipingDpi = parseInt(document.getElementById('snipingDpi').value);
+      const autoEn = document.getElementById('autoMouseEn').checked ? 1 : 0;
+      const autoLayer = parseInt(document.getElementById('autoMouseLayer').value);
+      const autoTime = parseInt(document.getElementById('autoMouseTime').value);
+      const dragBuffer = parseInt(document.getElementById('dragBuffer').value);
+      const dragRevY = document.getElementById('dragRevY').checked ? 1 : 0;
+
+      const l1 = hexToRgb(document.getElementById('colLayer1').value);
+      const l2 = hexToRgb(document.getElementById('colLayer2').value);
+      const l3 = hexToRgb(document.getElementById('colLayer3').value);
+
+      const payload = [
+        (defaultDpi >> 8) & 0xFF, defaultDpi & 0xFF,
+        (snipingDpi >> 8) & 0xFF, snipingDpi & 0xFF,
+        autoEn,
+        autoLayer,
+        (autoTime >> 8) & 0xFF, autoTime & 0xFF,
+        dragBuffer,
+        dragRevY,
+        l1.r, l1.g, l1.b,
+        l2.r, l2.g, l2.b,
+        l3.r, l3.g, l3.b
+      ];
+
+      log("설정을 키보드에 적용하는 중...", "info");
+      sendCommand(0x02, payload);
+    }
+
+    function saveToEEPROM() {
+      applyToKeyboard();
+      setTimeout(() => {
+        log("EEPROM 영구 저장 요청 전송...", "info");
+        sendCommand(0x03);
+      }, 100);
+    }
+
+    function resetDefaults() {
+      if (confirm("모든 설정을 공장 기본값(Default)으로 초기화하시겠습니까?")) {
+        sendCommand(0x04);
+      }
+    }
+  </script>
+</body>
+</html>

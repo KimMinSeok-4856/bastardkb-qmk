@@ -51,6 +51,13 @@
 #        define CHARYBDIS_DRAGSCROLL_BUFFER_SIZE 6
 #    endif // !CHARYBDIS_DRAGSCROLL_BUFFER_SIZE
 
+uint8_t g_charybdis_dragscroll_buffer_size = CHARYBDIS_DRAGSCROLL_BUFFER_SIZE;
+#ifdef CHARYBDIS_DRAGSCROLL_REVERSE_Y
+bool g_charybdis_dragscroll_reverse_y = true;
+#else
+bool g_charybdis_dragscroll_reverse_y = false;
+#endif
+
 typedef union {
     uint8_t raw;
     struct {
@@ -190,18 +197,18 @@ static void pointing_device_task_charybdis(report_mouse_t* mouse_report) {
 #    else
         scroll_buffer_x += mouse_report->x;
 #    endif // CHARYBDIS_DRAGSCROLL_REVERSE_X
-#    ifdef CHARYBDIS_DRAGSCROLL_REVERSE_Y
-        scroll_buffer_y -= mouse_report->y;
-#    else
-        scroll_buffer_y += mouse_report->y;
-#    endif // CHARYBDIS_DRAGSCROLL_REVERSE_Y
+        if (g_charybdis_dragscroll_reverse_y) {
+            scroll_buffer_y -= mouse_report->y;
+        } else {
+            scroll_buffer_y += mouse_report->y;
+        }
         mouse_report->x = 0;
         mouse_report->y = 0;
-        if (abs(scroll_buffer_x) > CHARYBDIS_DRAGSCROLL_BUFFER_SIZE) {
+        if (abs(scroll_buffer_x) > g_charybdis_dragscroll_buffer_size) {
             mouse_report->h = scroll_buffer_x > 0 ? 1 : -1;
             scroll_buffer_x = 0;
         }
-        if (abs(scroll_buffer_y) > CHARYBDIS_DRAGSCROLL_BUFFER_SIZE) {
+        if (abs(scroll_buffer_y) > g_charybdis_dragscroll_buffer_size) {
             mouse_report->v = scroll_buffer_y > 0 ? 1 : -1;
             scroll_buffer_y = 0;
         }
