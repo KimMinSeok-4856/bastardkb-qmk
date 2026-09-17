@@ -1,0 +1,43 @@
+name: Build Charybdis Firmware
+
+on:
+  push:
+    branches:
+      - feature/minseok-rgb-layout
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Minseok Keymap
+    runs-on: ubuntu-latest
+    container: ghcr.io/qmk/qmk_cli
+    steps:
+      - name: Disable safe.directory check
+        run: git config --global --add safe.directory '*'
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          pip3 install -r requirements.txt || true
+
+      - name: Fetch submodules via QMK CLI
+        run: |
+          qmk git-submodule -f
+
+      - name: Compile Charybdis 3x6 Firmware
+        run: |
+          qmk compile -kb bastardkb/charybdis/3x6/splinktegrated_rev1 -km minseok
+
+      - name: Upload UF2 Firmware Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bastardkb_charybdis_3x6_splinktegrated_rev1_minseok
+          path: |
+            *.uf2
+            .build/*.uf2

@@ -25,19 +25,73 @@ enum tap_dance_indexes {
     TD_10,
 };
 
-// Tap Dance definitions matching dd.vil
+// Tap Dance Tap-Hold struct and functions
+typedef struct {
+    uint16_t tap;
+    uint16_t hold;
+    uint16_t held;
+} tap_dance_tap_hold_t;
+
+void tap_dance_tap_hold_finished(tap_dance_state_t *state, void *user_data) {
+    tap_dance_tap_hold_t *tap_hold = (tap_dance_tap_hold_t *)user_data;
+
+    if (state->pressed) {
+        if (state->count == 1
+#ifndef PERMISSIVE_HOLD
+            && !state->interrupted
+#endif
+        ) {
+            register_code16(tap_hold->hold);
+            tap_hold->held = tap_hold->hold;
+        } else {
+            register_code16(tap_hold->tap);
+            tap_hold->held = tap_hold->tap;
+        }
+    }
+}
+
+void tap_dance_tap_hold_reset(tap_dance_state_t *state, void *user_data) {
+    tap_dance_tap_hold_t *tap_hold = (tap_dance_tap_hold_t *)user_data;
+
+    if (tap_hold->held) {
+        unregister_code16(tap_hold->held);
+        tap_hold->held = 0;
+    }
+}
+
+// Tap Dance definitions matching dd.vil (Tap on tap, Shortcut on hold)
+static tap_dance_tap_hold_t td_tap_holds[] = {
+    [TD_0]  = {KC_N, KC_B, 0},
+    [TD_1]  = {KC_Z, LCTL(KC_Z), 0},
+    [TD_2]  = {KC_X, LCTL(KC_X), 0},
+    [TD_3]  = {KC_C, LCTL(KC_C), 0},
+    [TD_4]  = {KC_V, LCTL(KC_V), 0},
+    [TD_5]  = {KC_E, LGUI(KC_E), 0},
+    [TD_6]  = {KC_RALT, KC_RCTL, 0},
+    [TD_7]  = {KC_MINS, KC_EQL, 0},
+    [TD_8]  = {KC_BSPC, KC_DEL, 0},
+    [TD_9]  = {KC_SLSH, KC_BSLS, 0},
+    [TD_10] = {KC_LBRC, KC_RBRC, 0},
+};
+
+#define ACTION_TAP_DANCE_TAP_HOLD_IDX(idx) \
+    { \
+        .fn = {NULL, tap_dance_tap_hold_finished, tap_dance_tap_hold_reset, NULL}, \
+        .user_data = (void *)&td_tap_holds[idx], \
+    }
+
 tap_dance_action_t tap_dance_actions[] = {
-    [TD_0]  = ACTION_TAP_DANCE_DOUBLE(KC_N, KC_B),
-    [TD_1]  = ACTION_TAP_DANCE_DOUBLE(KC_Z, LCTL(KC_Z)),
-    [TD_2]  = ACTION_TAP_DANCE_DOUBLE(KC_X, LCTL(KC_X)),
-    [TD_3]  = ACTION_TAP_DANCE_DOUBLE(KC_C, LCTL(KC_C)),
-    [TD_4]  = ACTION_TAP_DANCE_DOUBLE(KC_V, LCTL(KC_V)),
-    [TD_5]  = ACTION_TAP_DANCE_DOUBLE(KC_E, LGUI(KC_E)),
-    [TD_6]  = ACTION_TAP_DANCE_DOUBLE(KC_RALT, KC_RCTL),
-    [TD_7]  = ACTION_TAP_DANCE_DOUBLE(KC_MINS, KC_EQL),
-    [TD_8]  = ACTION_TAP_DANCE_DOUBLE(KC_BSPC, KC_DEL),
-    [TD_9]  = ACTION_TAP_DANCE_DOUBLE(KC_SLSH, KC_BSLS),
-    [TD_10] = ACTION_TAP_DANCE_DOUBLE(KC_LBRC, KC_RBRC),
+    [TD_0]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_0),
+    [TD_1]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_1),
+    [TD_2]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_2),
+    [TD_3]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_3),
+    [TD_4]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_4),
+    [TD_5]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_5),
+    [TD_6]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_6),
+    [TD_7]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_7),
+    [TD_8]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_8),
+    [TD_9]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_9),
+    [TD_10] = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_10),
 };
 
 // Keymaps
@@ -86,6 +140,23 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                   _______, _______, _______,    _______, _______
   )
 };
+
+// 탭댄스 키를 손에서 떼는 순간 0ms 딜레이로 즉시 기본 키(Tap) 입력 전송
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case QK_TAP_DANCE ... QK_TAP_DANCE_MAX: {
+            uint16_t idx = QK_TAP_DANCE_GET_INDEX(keycode);
+            if (idx < sizeof(td_tap_holds) / sizeof(td_tap_holds[0])) {
+                tap_dance_state_t *state = tap_dance_get_state(idx);
+                if (!record->event.pressed && state != NULL && state->count && !state->finished) {
+                    tap_code16(td_tap_holds[idx].tap);
+                }
+            }
+            break;
+        }
+    }
+    return true;
+}
 
 // 3번 레이어(마우스 레이어) 진입 시 자동으로 트랙볼 드래그 스크롤 활성화
 layer_state_t layer_state_set_user(layer_state_t state) {
