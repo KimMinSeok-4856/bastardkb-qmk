@@ -25,6 +25,10 @@
 #    include "print.h"
 #endif // CONSOLE_ENABLE
 
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+#    include "pointing_device_auto_mouse.h"
+#endif
+
 #ifdef POINTING_DEVICE_ENABLE
 #    ifndef CHARYBDIS_MINIMUM_DEFAULT_DPI
 #        define CHARYBDIS_MINIMUM_DEFAULT_DPI 400
@@ -174,24 +178,32 @@ void charybdis_set_pointer_sniping_enabled(bool enable) {
     maybe_update_pointing_device_cpi(&g_charybdis_config);
 }
 
+static int16_t scroll_buffer_x = 0;
+static int16_t scroll_buffer_y = 0;
+static int16_t g_dragscroll_motion = 0;
+
 bool charybdis_get_pointer_dragscroll_enabled(void) {
     return g_charybdis_config.is_dragscroll_enabled;
 }
 
 void charybdis_set_pointer_dragscroll_enabled(bool enable) {
-    g_charybdis_config.is_dragscroll_enabled = enable;
-    maybe_update_pointing_device_cpi(&g_charybdis_config);
+    if (g_charybdis_config.is_dragscroll_enabled != enable) {
+        g_charybdis_config.is_dragscroll_enabled = enable;
+        scroll_buffer_x = 0;
+        scroll_buffer_y = 0;
+        g_dragscroll_motion = 0;
+        maybe_update_pointing_device_cpi(&g_charybdis_config);
+    }
 }
 
 /**
  * \brief Augment the pointing device behavior.
  *
- * Implement drag-scroll.
+ * Implement drag-scroll with motion retention for auto-mouse.
  */
 static void pointing_device_task_charybdis(report_mouse_t* mouse_report) {
-    static int16_t scroll_buffer_x = 0;
-    static int16_t scroll_buffer_y = 0;
     if (g_charybdis_config.is_dragscroll_enabled) {
+        g_dragscroll_motion += abs(mouse_report->x) + abs(mouse_report->y);
 #    ifdef CHARYBDIS_DRAGSCROLL_REVERSE_X
         scroll_buffer_x -= mouse_report->x;
 #    else
@@ -214,6 +226,45 @@ static void pointing_device_task_charybdis(report_mouse_t* mouse_report) {
         }
     }
 }
+
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+bool auto_mouse_activation(report_mouse_t mouse_report) {
+    if (g_charybdis_config.is_dragscroll_enabled) {
+        if (g_dragscroll_motion > AUTO_MOUSE_THRESHOLD || mouse_report.buttons) {
+            g_dragscroll_motion = 0;
+            return true;
+        }
+        return false;
+    }
+    static int16_t total_x = 0;
+    static int16_t total_y = 0;
+    total_x += mouse_report.x;
+    total_y += mouse_report.y;
+    if (abs(total_x) > AUTO_MOUSE_THRESHOLD || abs(total_y) > AUTO_MOUSE_THRESHOLD || mouse_report.buttons) {
+        total_x = 0;
+        total_y = 0;
+        return true;
+    }
+    return false;
+}
+
+bool is_mouse_record_kb(uint16_t keycode, keyrecord_t* record) {
+#    ifndef NO_CHARYBDIS_KEYCODES
+    switch (keycode) {
+        case POINTER_DEFAULT_DPI_FORWARD:
+        case POINTER_DEFAULT_DPI_REVERSE:
+        case POINTER_SNIPING_DPI_FORWARD:
+        case POINTER_SNIPING_DPI_REVERSE:
+        case SNIPING_MODE:
+        case SNIPING_MODE_TOGGLE:
+        case DRAGSCROLL_MODE:
+        case DRAGSCROLL_MODE_TOGGLE:
+            return true;
+    }
+#    endif
+    return is_mouse_record_user(keycode, record);
+}
+#endif // POINTING_DEVICE_AUTO_MOUSE_ENABLE
 
 report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
     if (is_keyboard_master()) {

@@ -273,6 +273,28 @@ void pointing_device_init_user(void) {
     apply_user_config();
 }
 
+// Ensure dragscroll cleanly turns off whenever exiting the mouse layer so it never gets stuck
+layer_state_t layer_state_set_user(layer_state_t state) {
+    uint8_t mouse_layer = g_user_config.auto_mouse_layer ? g_user_config.auto_mouse_layer : 3;
+    if (!IS_LAYER_ON_STATE(state, mouse_layer)) {
+        charybdis_set_pointer_dragscroll_enabled(false);
+    }
+    return state;
+}
+
+bool is_mouse_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case DRGSCRL:
+        case DRG_TOG:
+        case SNIPING:
+        case SNP_TOG:
+        case DPI_MOD:
+            return true;
+        default:
+            return false;
+    }
+}
+
 // WebHID custom packet receiver (Intercepts 0xFC, forwards everything else to VIA)
 bool via_command_kb(uint8_t *data, uint8_t length) {
     if (data[0] == 0xFC) {
