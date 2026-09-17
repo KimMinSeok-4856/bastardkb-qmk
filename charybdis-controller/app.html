@@ -10,7 +10,7 @@
   <style>
     :root {
       --bg-base: #090d16;
-      --bg-card: rgba(18, 25, 42, 0.85);
+      --bg-card: rgba(18, 25, 42, 0.88);
       --border-color: rgba(66, 85, 125, 0.4);
       --border-focus: #38bdf8;
       --accent-cyan: #06b6d4;
@@ -279,8 +279,8 @@
     }
 
     .key-cap {
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       background: var(--key-bg);
       border: 1px solid var(--key-border);
       border-radius: 8px;
@@ -296,6 +296,9 @@
       user-select: none;
       box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
       position: relative;
+      text-align: center;
+      padding: 2px;
+      line-height: 1.15;
     }
 
     .key-cap:hover {
@@ -314,7 +317,9 @@
 
     .key-cap.td-key {
       border-color: #c084fc;
+      background: rgba(168, 85, 247, 0.2);
       color: #e9d5ff;
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
     }
 
     .thumb-cluster {
@@ -361,6 +366,7 @@
       margin-bottom: 12px;
       border-bottom: 1px solid var(--border-color);
       padding-bottom: 10px;
+      flex-wrap: wrap;
     }
 
     .palette-cat-btn {
@@ -380,7 +386,7 @@
 
     .palette-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
       gap: 8px;
       max-height: 220px;
       overflow-y: auto;
@@ -388,7 +394,7 @@
     }
 
     .palette-key {
-      padding: 10px 6px;
+      padding: 9px 4px;
       background: #1e293b;
       border: 1px solid var(--key-border);
       border-radius: 6px;
@@ -397,6 +403,8 @@
       text-align: center;
       color: var(--text-main);
       cursor: pointer;
+      user-select: none;
+      word-break: break-all;
     }
 
     .palette-key:hover {
@@ -405,16 +413,22 @@
       color: #fff;
     }
 
-    /* Tap Dance Table */
+    /* Tap Dance Studio Table & Badges */
     .td-controls-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 14px;
+      gap: 12px;
+    }
+
+    .td-btn-group {
+      display: flex;
+      gap: 10px;
     }
 
     .btn-add-td {
-      padding: 8px 18px;
+      padding: 8px 16px;
       border-radius: 8px;
       background: linear-gradient(135deg, #a855f7, #7e22ce);
       color: white;
@@ -427,14 +441,29 @@
 
     .btn-add-td:hover {
       box-shadow: 0 6px 18px rgba(168, 85, 247, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-reset-td {
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: rgba(51, 65, 85, 0.5);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      font-size: 13px;
+    }
+
+    .btn-reset-td:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: #fff;
     }
 
     .td-table-wrap {
-      max-height: 460px;
+      max-height: 520px;
       overflow-y: auto;
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      background: rgba(15, 23, 42, 0.5);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.6);
     }
 
     table.td-table {
@@ -445,7 +474,7 @@
     }
 
     table.td-table th {
-      background: rgba(30, 41, 59, 0.85);
+      background: rgba(30, 41, 59, 0.95);
       padding: 12px 14px;
       font-weight: 600;
       color: var(--text-muted);
@@ -456,7 +485,7 @@
     }
 
     table.td-table td {
-      padding: 10px 14px;
+      padding: 12px 14px;
       border-bottom: 1px solid rgba(66, 85, 125, 0.2);
       vertical-align: middle;
     }
@@ -465,28 +494,51 @@
       display: inline-block;
       font-family: 'JetBrains Mono', monospace;
       font-weight: 700;
-      font-size: 12px;
-      padding: 4px 8px;
-      border-radius: 6px;
-      background: rgba(168, 85, 247, 0.15);
-      color: #c084fc;
-      border: 1px solid rgba(168, 85, 247, 0.3);
-    }
-
-    .td-select {
-      background: #0f172a;
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 7px 10px;
-      border-radius: 6px;
       font-size: 13px;
-      font-family: 'JetBrains Mono', monospace;
-      width: 100%;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(168, 85, 247, 0.18);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
     }
 
-    .td-select:focus {
+    /* Interactive Key Trigger Pill Button */
+    .key-picker-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--key-border);
+      background: #1e293b;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 13px;
+      min-width: 140px;
+      justify-content: space-between;
+    }
+
+    .key-picker-trigger:hover {
       border-color: #38bdf8;
-      outline: none;
+      background: #283548;
+      transform: translateY(-1px);
+    }
+
+    .key-picker-trigger.tap-type {
+      border-left: 4px solid var(--accent-cyan);
+      color: #38bdf8;
+    }
+
+    .key-picker-trigger.hold-type {
+      border-left: 4px solid var(--accent-purple);
+      color: #d8b4fe;
+    }
+
+    .key-picker-trigger .edit-icon {
+      font-size: 11px;
+      opacity: 0.6;
     }
 
     .btn-del-td {
@@ -499,7 +551,210 @@
     }
 
     .btn-del-td:hover {
-      background: rgba(244, 63, 94, 0.3);
+      background: rgba(244, 63, 94, 0.35);
+    }
+
+    /* Modal for Key Selector & Modifier Builder */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 90%;
+      max-width: 680px;
+      background: #0f172a;
+      border: 1px solid var(--border-focus);
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-close-modal {
+      background: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .btn-close-modal:hover {
+      color: #fff;
+    }
+
+    /* Modifier Builder Controls */
+    .mod-builder-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+    }
+
+    .mod-builder-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .mod-chk-wrap {
+      display: flex;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .mod-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s;
+    }
+
+    .mod-chip input {
+      cursor: pointer;
+      accent-color: var(--accent-cyan);
+    }
+
+    .mod-chip.active {
+      border-color: #38bdf8;
+      background: rgba(6, 182, 212, 0.2);
+      color: #38bdf8;
+    }
+
+    .modal-tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      overflow-x: auto;
+    }
+
+    .modal-tab-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: rgba(30, 41, 59, 0.4);
+      color: var(--text-muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .modal-tab-btn.active {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 4px;
+    }
+
+    .modal-key-btn {
+      padding: 10px 6px;
+      background: #1e293b;
+      border: 1px solid var(--key-border);
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      text-align: center;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .modal-key-btn:hover {
+      background: #2563eb;
+      border-color: #60a5fa;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .modal-key-btn.is-shortcut {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.4);
+      color: #d8b4fe;
+    }
+
+    .modal-key-btn.is-shortcut:hover {
+      background: #7e22ce;
+      color: #fff;
+    }
+
+    .custom-hex-box {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .custom-hex-input {
+      flex: 1;
+      background: #0b1120;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+
+    .custom-hex-input:focus {
+      border-color: #38bdf8;
+      outline: none;
+    }
+
+    .btn-apply-hex {
+      padding: 8px 16px;
+      background: #2563eb;
+      color: white;
+      border-radius: 8px;
+      font-size: 13px;
     }
 
     /* Grid Layout for Tuning */
@@ -774,9 +1029,11 @@
       <div class="palette-box">
         <div class="palette-categories">
           <button class="palette-cat-btn active" onclick="showPaletteCat('basic')">문자 / 숫자 (Basic)</button>
-          <button class="palette-cat-btn" onclick="showPaletteCat('mods')">조합키 / 특수 (Mods/Nav)</button>
+          <button class="palette-cat-btn" onclick="showPaletteCat('symbols')">기호 / 특수문자 (Symbols)</button>
+          <button class="palette-cat-btn" onclick="showPaletteCat('mods')">조합키 / 제어 (Mods/Nav)</button>
+          <button class="palette-cat-btn" onclick="showPaletteCat('shortcuts')">단축키 프리셋 (Shortcuts)</button>
           <button class="palette-cat-btn" onclick="showPaletteCat('layers')">레이어 / 마우스 (Layer/Mouse)</button>
-          <button class="palette-cat-btn" onclick="showPaletteCat('tapdance')">탭댄스 (Tap Dance)</button>
+          <button class="palette-cat-btn" onclick="showPaletteCat('tapdance')">탭댄스 (TD 0~10)</button>
         </div>
         <div class="palette-grid" id="paletteGrid"></div>
       </div>
@@ -788,17 +1045,20 @@
     <div class="card">
       <div class="card-header">
         <div class="card-title"><span class="icon">⚡</span> 탭댄스 관리 및 실시간 편집기</div>
-        <button class="btn-add-td" onclick="addNewTdSlot()">➕ 새 탭댄스 추가</button>
+        <div class="td-btn-group">
+          <button class="btn-reset-td" onclick="restoreDefaultTdSlots()">🔄 기본 탭댄스로 복원</button>
+          <button class="btn-add-td" onclick="addNewTdSlot()">➕ 새 탭댄스 추가</button>
+        </div>
       </div>
       <div class="td-table-wrap">
         <table class="td-table">
           <thead>
             <tr>
-              <th style="width: 90px;">슬롯</th>
-              <th style="width: 110px;">VIA 주소</th>
-              <th>단타 키 (Tap - 톡 누를 때)</th>
-              <th>길게 누름 키 (Hold - 길게 누를 때)</th>
-              <th style="width: 80px; text-align: center;">삭제</th>
+              <th style="width: 85px;">슬롯</th>
+              <th style="width: 105px;">VIA 주소</th>
+              <th>단타 키 (Tap - 톡 칠 때)</th>
+              <th>길게 누름 키 (Hold - 꾹 누를 때)</th>
+              <th style="width: 75px; text-align: center;">삭제</th>
             </tr>
           </thead>
           <tbody id="tdTableBody"></tbody>
@@ -874,14 +1134,14 @@
         </div>
         <div class="control-row">
           <div class="label-wrap">
-            <label for="dragBuffer">스크롤 민감도 버퍼 (낮을수록 빠름)</label>
+            <label for="dragBuffer">스크롤 누적 버퍼 (민감도: 작을수록 빠름)</label>
             <span class="value-display" id="valDragBuffer">20 버퍼</span>
           </div>
           <input type="range" id="dragBuffer" min="5" max="50" step="1" value="20" oninput="document.getElementById('valDragBuffer').textContent = this.value + ' 버퍼'">
         </div>
         <div class="control-row">
           <div class="switch-container">
-            <span class="switch-label">Y축 스크롤 방향 반전 (Natural Scroll)</span>
+            <span class="switch-label">세로 스크롤 Y축 반전 (자연스러운 휠 스크롤)</span>
             <label class="switch">
               <input type="checkbox" id="dragRevY" checked>
               <span class="slider"></span>
@@ -890,10 +1150,10 @@
         </div>
       </div>
 
-      <!-- Layer RGB -->
+      <!-- Layer RGB Backlight -->
       <div class="card">
         <div class="card-header">
-          <div class="card-title"><span class="icon">🎨</span> 레이어별 RGB 인디케이터</div>
+          <div class="card-title"><span class="icon">💡</span> 레이어별 RGB 백라이트 색상</div>
         </div>
         <div class="rgb-grid">
           <div class="rgb-item">
@@ -925,13 +1185,54 @@
   <!-- Bottom Actions -->
   <div class="action-bar">
     <button class="btn-action btn-read" onclick="readFromKeyboard()">📥 키보드 전체 읽기</button>
-    <button class="btn-action btn-apply" onclick="applyToKeyboard()">⚡ 전체 즉시 적용</button>
+    <button class="btn-action btn-apply" onclick="applyToKeyboard()">⚡ 전체 즉시 적용 (테스트)</button>
     <button class="btn-action btn-save" onclick="saveToEEPROM()">💾 영구 저장 (EEPROM)</button>
   </div>
 
   <!-- Live Log Console -->
   <div class="log-box" id="logBox">
-    <div class="log-line"><span class="log-time">[시스템]</span> <span class="log-msg info">Charybdis 3x6 Studio가 준비되었습니다. '키보드 연결'을 눌러주세요.</span></div>
+    <div class="log-line"><span class="log-time">[시스템]</span> <span class="log-msg info">Charybdis 3x6 Studio 준비 완료. 상단 '키보드 연결'을 클릭해 주세요.</span></div>
+  </div>
+
+  <!-- Modal: Key Picker & Modifier Builder -->
+  <div class="modal-overlay" id="keyModal" onclick="closeKeyModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">⌨️ 키 지정</div>
+        <button class="btn-close-modal" onclick="closeKeyModal()">&times;</button>
+      </div>
+
+      <!-- Modifier Combiner Checkboxes -->
+      <div class="mod-builder-bar">
+        <span class="mod-builder-label">조합키:</span>
+        <div class="mod-chk-wrap">
+          <label class="mod-chip" id="chipCtrl"><input type="checkbox" id="modCtrl" onchange="updateModChip()"> Ctrl</label>
+          <label class="mod-chip" id="chipShift"><input type="checkbox" id="modShift" onchange="updateModChip()"> Shift</label>
+          <label class="mod-chip" id="chipAlt"><input type="checkbox" id="modAlt" onchange="updateModChip()"> Alt</label>
+          <label class="mod-chip" id="chipWin"><input type="checkbox" id="modWin" onchange="updateModChip()"> Win</label>
+        </div>
+      </div>
+
+      <!-- Modal Category Tabs -->
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" onclick="switchModalTab('shortcuts')">⚡ 자주 쓰는 단축키</button>
+        <button class="modal-tab-btn" onclick="switchModalTab('basic')">🔤 문자 / 숫자</button>
+        <button class="modal-tab-btn" onclick="switchModalTab('symbols')">🔣 기호 / 특수문자</button>
+        <button class="modal-tab-btn" onclick="switchModalTab('nav')">🧭 이동 / 제어</button>
+        <button class="modal-tab-btn" onclick="switchModalTab('mods')">🕹️ 모디파이어</button>
+        <button class="modal-tab-btn" onclick="switchModalTab('layers')">📑 레이어 / 마우스</button>
+      </div>
+
+      <!-- Modal Key Grid -->
+      <div class="modal-grid" id="modalGrid"></div>
+
+      <!-- Direct Hex Input -->
+      <div class="custom-hex-box">
+        <span style="font-size: 13px; color: var(--text-muted);">직접 입력 (Hex):</span>
+        <input type="text" class="custom-hex-input" id="modalHexInput" placeholder="예: 0x011D, 0x5700" onkeydown="if(event.key==='Enter') applyHexInput()">
+        <button class="btn-apply-hex" onclick="applyHexInput()">적용</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -945,7 +1246,7 @@
     let currentLayer = 0;
     let selectedKey = null; // { row, col, elem }
 
-    // Charybdis 3x6 Physical Matrix Layout
+    // Physical Matrix Layout of Charybdis 3x6
     const LAYOUT_DEF = {
       left: {
         rows: [
@@ -965,25 +1266,7 @@
       }
     };
 
-    // Keymap Memory Cache [layer][row][col] -> keycode
-    let keymapCache = {};
-    for (let l = 0; l < 4; l++) {
-      keymapCache[l] = {};
-      for (let r = 0; r < 8; r++) {
-        keymapCache[l][r] = {};
-      }
-    }
-
-    // Default layer 0 layout fallback
-    const DEFAULT_L0 = [
-      ["TAB", "Q", "W", "TD 5", "R", "T",   "Y", "U", "I", "O", "P", "TD 10"],
-      ["LCTL", "A", "S", "D", "LT(1,F)", "G",   "H", "J", "K", "L", ";", "'"],
-      ["LALT", "TD 1", "TD 2", "TD 3", "TD 4", "B",   "N", "M", ",", ".", "TD 9", "TD 6"],
-      // Thumbs
-      ["LSFT", "ENTER", "MO(3)",   "TD 8", "LT(2,SPC)"]
-    ];
-
-    // Keycode Definitions
+    // Comprehensive Keycode Database
     const PALETTE_DATA = {
       basic: [
         { name: "A", code: 0x0004 }, { name: "B", code: 0x0005 }, { name: "C", code: 0x0006 }, { name: "D", code: 0x0007 },
@@ -995,50 +1278,140 @@
         { name: "Y", code: 0x001C }, { name: "Z", code: 0x001D },
         { name: "1", code: 0x001E }, { name: "2", code: 0x001F }, { name: "3", code: 0x0020 }, { name: "4", code: 0x0021 },
         { name: "5", code: 0x0022 }, { name: "6", code: 0x0023 }, { name: "7", code: 0x0024 }, { name: "8", code: 0x0025 },
-        { name: "9", code: 0x0026 }, { name: "0", code: 0x0027 },
-        { name: "Space", code: 0x002C }, { name: "Enter", code: 0x0028 }, { name: "Backspace", code: 0x002A },
-        { name: "Tab", code: 0x002B }, { name: "Esc", code: 0x0029 }, { name: "Delete", code: 0x004C }
+        { name: "9", code: 0x0026 }, { name: "0", code: 0x0027 }
+      ],
+      symbols: [
+        { name: "- (빼기)", code: 0x002D }, { name: "= (등호)", code: 0x002E },
+        { name: "[ (여는괄호)", code: 0x002F }, { name: "] (닫는괄호)", code: 0x0030 },
+        { name: "\\ (역슬래시)", code: 0x0031 }, { name: "; (세미콜론)", code: 0x0033 },
+        { name: "' (따옴표)", code: 0x0034 }, { name: "` (그레이브)", code: 0x0035 },
+        { name: ", (쉼표)", code: 0x0036 }, { name: ". (마침표)", code: 0x0037 },
+        { name: "/ (슬래시)", code: 0x0038 }
       ],
       mods: [
+        { name: "Enter", code: 0x0028 }, { name: "Esc", code: 0x0029 }, { name: "Backspace", code: 0x002A },
+        { name: "Tab", code: 0x002B }, { name: "Space", code: 0x002C }, { name: "Delete", code: 0x004C },
         { name: "LCtrl", code: 0x00E0 }, { name: "LShift", code: 0x00E1 }, { name: "LAlt", code: 0x00E2 }, { name: "LGui(Win)", code: 0x00E3 },
         { name: "RCtrl", code: 0x00E4 }, { name: "RShift", code: 0x00E5 }, { name: "RAlt(한영)", code: 0x00E6 }, { name: "RGui", code: 0x00E7 },
-        { name: "Left", code: 0x0050 }, { name: "Down", code: 0x0051 }, { name: "Up", code: 0x0052 }, { name: "Right", code: 0x004F },
+        { name: "Caps Lock", code: 0x0039 }, { name: "PrintScreen", code: 0x0046 },
         { name: "Home", code: 0x004A }, { name: "End", code: 0x004D }, { name: "PgUp", code: 0x004B }, { name: "PgDn", code: 0x004E },
+        { name: "Left", code: 0x0050 }, { name: "Down", code: 0x0051 }, { name: "Up", code: 0x0052 }, { name: "Right", code: 0x004F },
         { name: "F1", code: 0x003A }, { name: "F2", code: 0x003B }, { name: "F3", code: 0x003C }, { name: "F4", code: 0x003D },
         { name: "F5", code: 0x003E }, { name: "F6", code: 0x003F }, { name: "F7", code: 0x0040 }, { name: "F8", code: 0x0041 },
         { name: "F9", code: 0x0042 }, { name: "F10", code: 0x0043 }, { name: "F11", code: 0x0044 }, { name: "F12", code: 0x0045 }
       ],
+      shortcuts: [
+        { name: "Ctrl + Z (실행취소)", code: 0x011D },
+        { name: "Ctrl + X (잘라내기)", code: 0x011B },
+        { name: "Ctrl + C (복사)", code: 0x0106 },
+        { name: "Ctrl + V (붙여넣기)", code: 0x0119 },
+        { name: "Ctrl + A (전체선택)", code: 0x0104 },
+        { name: "Ctrl + S (저장)", code: 0x0116 },
+        { name: "Ctrl + F (찾기)", code: 0x0109 },
+        { name: "Ctrl + Y (다시실행)", code: 0x011C },
+        { name: "Win + E (탐색기)", code: 0x0808 },
+        { name: "Win + D (바탕화면)", code: 0x0807 },
+        { name: "Alt + Tab (작업전환)", code: 0x042B },
+        { name: "Alt + F4 (창닫기)", code: 0x043D },
+        { name: "Ctrl+Shift+Esc (작업관리자)", code: 0x0329 }
+      ],
       layers: [
-        { name: "MO(1)", code: 0x5201 }, { name: "MO(2)", code: 0x5202 }, { name: "MO(3)", code: 0x5203 },
+        { name: "MO(1) [L1임시]", code: 0x5201 }, { name: "MO(2) [L2임시]", code: 0x5202 }, { name: "MO(3) [L3마우스]", code: 0x5203 },
+        { name: "TO(0) [L0고정]", code: 0x5100 }, { name: "TO(1) [L1고정]", code: 0x5101 }, { name: "TO(2) [L2고정]", code: 0x5102 },
         { name: "LT(1, F)", code: 0x4109 }, { name: "LT(2, SPC)", code: 0x422C },
         { name: "MS_BTN1 (좌클릭)", code: 0x00F0 }, { name: "MS_BTN2 (우클릭)", code: 0x00F1 }, { name: "MS_BTN3 (휠클릭)", code: 0x00F2 },
         { name: "DRGSCRL (스크롤)", code: 0x7E06 }, { name: "SNIPING (스나이퍼)", code: 0x7E04 }, { name: "DPI_MOD (DPI변경)", code: 0x7E00 }
       ],
-      tapdance: [] // Dynamically filled with TD 0 ~ TD 15
+      tapdance: []
     };
 
-    let tdSlots = [
-      { tap: 0x0011, hold: 0x0005 },
-      { tap: 0x001D, hold: 0x011D },
-      { tap: 0x001B, hold: 0x011B },
-      { tap: 0x0006, hold: 0x0106 },
-      { tap: 0x0019, hold: 0x0119 },
-      { tap: 0x0008, hold: 0x0808 },
-      { tap: 0x00E6, hold: 0x00E4 },
-      { tap: 0x002D, hold: 0x002E },
-      { tap: 0x002A, hold: 0x004C },
-      { tap: 0x0038, hold: 0x0031 },
-      { tap: 0x002F, hold: 0x0030 }
+    // Default 11 Tap Dance Slots (Identical to minseok keymap.c)
+    const DEFAULT_TD_SLOTS = [
+      { tap: 0x0011, hold: 0x0005 }, // TD 0: N / B
+      { tap: 0x001D, hold: 0x011D }, // TD 1: Z / Ctrl+Z
+      { tap: 0x001B, hold: 0x011B }, // TD 2: X / Ctrl+X
+      { tap: 0x0006, hold: 0x0106 }, // TD 3: C / Ctrl+C
+      { tap: 0x0019, hold: 0x0119 }, // TD 4: V / Ctrl+V
+      { tap: 0x0008, hold: 0x0808 }, // TD 5: E / Win+E
+      { tap: 0x00E6, hold: 0x00E4 }, // TD 6: RAlt(한영) / RCtrl
+      { tap: 0x002D, hold: 0x002E }, // TD 7: - / =
+      { tap: 0x002A, hold: 0x004C }, // TD 8: Backspace / Delete
+      { tap: 0x0038, hold: 0x0031 }, // TD 9: / / \
+      { tap: 0x002F, hold: 0x0030 }  // TD 10: [ / ]
     ];
 
+    let tdSlots = JSON.parse(JSON.stringify(DEFAULT_TD_SLOTS));
+
+    // Universal Keycode to Readable Name Decoder
     function getKeyName(code) {
       if (!code) return "____";
+      if (code === 0x0000) return "____";
       if (code >= 0x5700 && code <= 0x57FF) return `TD ${code - 0x5700}`;
+      if (code >= 0x5200 && code <= 0x521F) return `MO(${code & 0x1F})`;
+      if (code >= 0x5100 && code <= 0x511F) return `TO(${code & 0x1F})`;
+      if (code >= 0x5300 && code <= 0x531F) return `TG(${code & 0x1F})`;
+      if ((code & 0xF000) === 0x4000) {
+        const layer = (code >> 8) & 0x0F;
+        const subKey = getKeyName(code & 0xFF);
+        return `LT(${layer}, ${subKey})`;
+      }
+
+      // Check all palettes directly
       for (const cat of Object.values(PALETTE_DATA)) {
         const found = cat.find(k => k.code === code);
-        if (found) return found.name;
+        if (found) return found.name.split(' ')[0];
       }
+
+      // Decode Modifiers Mask (Ctrl, Shift, Alt, Gui)
+      if (code >= 0x0100 && code <= 0x1FFF) {
+        let prefix = "";
+        if ((code & 0x0100) || (code & 0x1000)) prefix += "Ctrl+";
+        if ((code & 0x0200) || (code & 0x2000)) prefix += "Shift+";
+        if ((code & 0x0400) || (code & 0x4000)) prefix += "Alt+";
+        if ((code & 0x0800) || (code & 0x8000)) prefix += "Win+";
+
+        const basic = code & 0xFF;
+        const basicName = getKeyName(basic);
+        return prefix + basicName;
+      }
+
       return '0x' + code.toString(16).toUpperCase();
+    }
+
+    // Keymap Memory Cache [layer][row][col]
+    let keymapCache = {};
+    for (let l = 0; l < 4; l++) {
+      keymapCache[l] = {};
+      for (let r = 0; r < 8; r++) keymapCache[l][r] = {};
+    }
+
+    // Pre-populate Default Layers from minseok keymap.c
+    function initDefaultKeymapCache() {
+      // Layer 0
+      keymapCache[0][0] = {0: 0x002B, 1: 0x0014, 2: 0x001A, 3: 0x5705, 4: 0x0015, 5: 0x0017}; // TAB, Q, W, TD5, R, T
+      keymapCache[0][4] = {5: 0x001C, 4: 0x0018, 3: 0x000C, 2: 0x0012, 1: 0x0013, 0: 0x570A}; // Y, U, I, O, P, TD10
+      keymapCache[0][1] = {0: 0x00E0, 1: 0x0004, 2: 0x0016, 3: 0x0007, 4: 0x4109, 5: 0x000A}; // LCTL, A, S, D, LT(1,F), G
+      keymapCache[0][5] = {5: 0x000B, 4: 0x000D, 3: 0x000E, 2: 0x000F, 1: 0x0033, 0: 0x0034}; // H, J, K, L, ;, '
+      keymapCache[0][2] = {0: 0x00E2, 1: 0x5701, 2: 0x5702, 3: 0x5703, 4: 0x5704, 5: 0x0005}; // LALT, TD1, TD2, TD3, TD4, B
+      keymapCache[0][6] = {5: 0x0011, 4: 0x0010, 3: 0x0036, 2: 0x0037, 1: 0x5709, 0: 0x5706}; // N, M, ,, ., TD9, TD6
+      keymapCache[0][3] = {3: 0x00E1, 4: 0x0028, 1: 0x5203}; // LSFT, ENTER, MO(3)
+      keymapCache[0][7] = {1: 0x5708, 3: 0x422C};             // TD8, LT(2,SPC)
+
+      // Layer 1 (F-keys & Navigation)
+      for (let c = 0; c < 6; c++) keymapCache[1][0][c] = 0x003A + c; // F1~F6
+      for (let c = 0; c < 6; c++) keymapCache[1][4][5 - c] = 0x0040 + c; // F7~F12
+      keymapCache[1][5] = {5: 0x004A, 3: 0x0052, 1: 0x004B, 0: 0x0046}; // HOME, UP, PGUP, PSCR
+      keymapCache[1][6] = {5: 0x004D, 4: 0x0050, 3: 0x0051, 2: 0x004F, 1: 0x004E}; // END, LEFT, DOWN, RIGHT, PGDN
+
+      // Layer 2 (Number & Numpad)
+      keymapCache[2][0] = {0: 0x0029, 1: 0x001E, 2: 0x001F, 3: 0x0020, 4: 0x0021, 5: 0x0022}; // ESC, 1~5
+      keymapCache[2][4] = {5: 0x0023, 4: 0x0024, 3: 0x0025, 2: 0x0026, 1: 0x0027, 0: 0x5707}; // 6~0, TD7
+      keymapCache[2][5] = {4: 0x005C, 3: 0x005D, 2: 0x005E}; // KP_4, KP_5, KP_6
+      keymapCache[2][6] = {5: 0x0062, 4: 0x0059, 3: 0x005A, 2: 0x005B, 1: 0x0063, 0: 0x0053}; // KP_0~3, ., NUM
+
+      // Layer 3 (Mouse Control)
+      keymapCache[3][1] = {3: 0x7E06}; // DRGSCRL
+      keymapCache[3][2] = {2: 0x00F0, 3: 0x00F2, 4: 0x00F1}; // BTN1, BTN3, BTN2
     }
 
     function switchTab(tabId) {
@@ -1051,6 +1424,7 @@
       } else if (tabId === 'tapdance') {
         document.querySelectorAll('.tab-btn')[1].classList.add('active');
         document.getElementById('tabTapDance').classList.add('active');
+        renderTdTable();
       } else if (tabId === 'hardware') {
         document.querySelectorAll('.tab-btn')[2].classList.add('active');
         document.getElementById('tabHardware').classList.add('active');
@@ -1066,43 +1440,27 @@
     }
 
     function buildKeyboardHTML() {
-      // Left rows
       for (let r = 0; r < 3; r++) {
         const container = document.getElementById(`row_L${r}`);
         container.innerHTML = '';
-        LAYOUT_DEF.left.rows[r].forEach(k => {
-          const cap = createKeyCap(k.r, k.c);
-          container.appendChild(cap);
-        });
+        LAYOUT_DEF.left.rows[r].forEach(k => container.appendChild(createKeyCap(k.r, k.c)));
       }
-      // Left thumbs
       const thumbL = document.getElementById('thumb_L');
       thumbL.innerHTML = '';
-      LAYOUT_DEF.left.thumbs.forEach(k => {
-        const cap = createKeyCap(k.r, k.c);
-        thumbL.appendChild(cap);
-      });
+      LAYOUT_DEF.left.thumbs.forEach(k => thumbL.appendChild(createKeyCap(k.r, k.c)));
 
-      // Right rows
       for (let r = 0; r < 3; r++) {
         const container = document.getElementById(`row_R${r}`);
         container.innerHTML = '';
-        LAYOUT_DEF.right.rows[r].forEach(k => {
-          const cap = createKeyCap(k.r, k.c);
-          container.appendChild(cap);
-        });
+        LAYOUT_DEF.right.rows[r].forEach(k => container.appendChild(createKeyCap(k.r, k.c)));
       }
-      // Right thumbs & trackball
       const thumbR = document.getElementById('thumb_R');
       thumbR.innerHTML = '';
-      LAYOUT_DEF.right.thumbs.forEach(k => {
-        const cap = createKeyCap(k.r, k.c);
-        thumbR.appendChild(cap);
-      });
+      LAYOUT_DEF.right.thumbs.forEach(k => thumbR.appendChild(createKeyCap(k.r, k.c)));
 
       const trackball = document.createElement('div');
       trackball.className = 'trackball-mockup';
-      trackball.innerHTML = 'BALL';
+      trackball.innerHTML = 'TRACK<br>BALL';
       thumbR.appendChild(trackball);
     }
 
@@ -1138,7 +1496,7 @@
 
       if (cat === 'tapdance') {
         PALETTE_DATA.tapdance = tdSlots.map((s, i) => ({
-          name: `TD ${i}`,
+          name: `TD ${i} (${getKeyName(s.tap)} / ${getKeyName(s.hold)})`,
           code: 0x5700 + i
         }));
       }
@@ -1165,9 +1523,8 @@
       elem.textContent = getKeyName(code);
       elem.classList.toggle('td-key', code >= 0x5700 && code <= 0x57FF);
 
-      log(`Layer ${currentLayer} [${row}, ${col}] -> ${getKeyName(code)} (0x${code.toString(16)}) 키 설정 중...`, "info");
+      log(`Layer ${currentLayer} [${row}, ${col}] -> ${getKeyName(code)} 설정`, "info");
 
-      // VIA id_dynamic_keymap_set_keycode = 0x05
       if (device && device.opened) {
         const packet = new Uint8Array(32);
         packet[0] = VIA_CMD_SET_KEY;
@@ -1177,10 +1534,11 @@
         packet[4] = (code >> 8) & 0xFF;
         packet[5] = code & 0xFF;
         await device.sendReport(0, packet);
-        log("키 매핑이 키보드에 실시간 반영되었습니다!", "success");
+        log("키 매핑 실시간 전송 완료!", "success");
       }
     }
 
+    // Render Tap Dance Studio Table
     function renderTdTable() {
       const tbody = document.getElementById('tdTableBody');
       tbody.innerHTML = '';
@@ -1188,19 +1546,23 @@
       tdSlots.forEach((slot, i) => {
         const tr = document.createElement('tr');
         const hexVia = '0x' + (0x5700 + i).toString(16).toUpperCase();
+        const tapName = getKeyName(slot.tap);
+        const holdName = getKeyName(slot.hold);
 
         tr.innerHTML = `
           <td><span class="td-badge">TD ${i}</span></td>
           <td style="font-family:'JetBrains Mono', monospace; color:var(--accent-amber);">${hexVia}</td>
           <td>
-            <select class="td-select" onchange="tdSlots[${i}].tap = parseInt(this.value); applySingleTdSlot(${i});">
-              ${PALETTE_DATA.basic.concat(PALETTE_DATA.mods).map(k => `<option value="${k.code}" ${k.code === slot.tap ? 'selected' : ''}>${k.name} (0x${k.code.toString(16).padStart(4, '0').toUpperCase()})</option>`).join('')}
-            </select>
+            <div class="key-picker-trigger tap-type" onclick="openKeyModal(${i}, 'tap')">
+              <span>${tapName}</span>
+              <span class="edit-icon">✏️ 변경</span>
+            </div>
           </td>
           <td>
-            <select class="td-select" onchange="tdSlots[${i}].hold = parseInt(this.value); applySingleTdSlot(${i});">
-              ${PALETTE_DATA.basic.concat(PALETTE_DATA.mods).map(k => `<option value="${k.code}" ${k.code === slot.hold ? 'selected' : ''}>${k.name} (0x${k.code.toString(16).padStart(4, '0').toUpperCase()})</option>`).join('')}
-            </select>
+            <div class="key-picker-trigger hold-type" onclick="openKeyModal(${i}, 'hold')">
+              <span>${holdName}</span>
+              <span class="edit-icon">✏️ 변경</span>
+            </div>
           </td>
           <td style="text-align:center;">
             <button class="btn-del-td" onclick="deleteTdSlot(${i})">삭제</button>
@@ -1211,23 +1573,131 @@
     }
 
     function addNewTdSlot() {
-      const newIdx = tdSlots.length;
-      if (newIdx >= 16) {
-        alert("최대 16개 슬롯까지 추가 가능합니다.");
+      if (tdSlots.length >= 11) {
+        alert("현재 펌웨어는 최대 11개(TD 0 ~ TD 10) 슬롯을 지원합니다.");
         return;
       }
-      tdSlots.push({ tap: 0x0004, hold: 0x0104 }); // Default A -> Ctrl+A
+      const newIdx = tdSlots.length;
+      tdSlots.push({ tap: 0x0004, hold: 0x0104 }); // 기본값: A / Ctrl+A
       renderTdTable();
       applySingleTdSlot(newIdx);
-      log(`새 탭댄스 슬롯 TD ${newIdx} 추가됨!`, "success");
+      log(`새 탭댄스 TD ${newIdx} 추가 완료!`, "success");
     }
 
     function deleteTdSlot(idx) {
-      if (confirm(`TD ${idx} 슬롯을 삭제하시겠습니까?`)) {
-        tdSlots.splice(idx, 1);
+      if (confirm(`TD ${idx} 슬롯을 초기화(삭제)하시겠습니까?`)) {
+        tdSlots[idx] = { tap: 0x0000, hold: 0x0000 };
         renderTdTable();
-        log(`TD ${idx} 슬롯 삭제됨`, "info");
+        applySingleTdSlot(idx);
+        log(`TD ${idx} 슬롯 초기화됨`, "info");
       }
+    }
+
+    function restoreDefaultTdSlots() {
+      if (confirm("minseok 기본 탭댄스 설정(11개)으로 복원하시겠습니까?")) {
+        tdSlots = JSON.parse(JSON.stringify(DEFAULT_TD_SLOTS));
+        renderTdTable();
+        for (let i = 0; i < tdSlots.length; i++) {
+          applySingleTdSlot(i);
+        }
+        log("기본 탭댄스 설정으로 복원되었습니다.", "success");
+      }
+    }
+
+    // Modal State
+    let activeModalTarget = null; // { slotIdx, field: 'tap' | 'hold' }
+
+    function openKeyModal(slotIdx, field) {
+      activeModalTarget = { slotIdx, field };
+      const currentCode = tdSlots[slotIdx][field];
+      const isHold = field === 'hold';
+
+      document.getElementById('modalTitle').innerHTML = `⚡ TD ${slotIdx} : ${isHold ? '길게 누름 (Hold)' : '단타 (Tap)'} 키 지정`;
+      
+      // Reset modifier checkboxes
+      document.getElementById('modCtrl').checked = !!((currentCode & 0x0100) || (currentCode & 0x1000));
+      document.getElementById('modShift').checked = !!((currentCode & 0x0200) || (currentCode & 0x2000));
+      document.getElementById('modAlt').checked = !!((currentCode & 0x0400) || (currentCode & 0x4000));
+      document.getElementById('modWin').checked = !!((currentCode & 0x0800) || (currentCode & 0x8000));
+      updateModChip();
+
+      document.getElementById('modalHexInput').value = '0x' + currentCode.toString(16).toUpperCase();
+      switchModalTab(isHold ? 'shortcuts' : 'basic');
+      document.getElementById('keyModal').classList.add('active');
+    }
+
+    function closeKeyModal(e) {
+      if (e && e.target !== document.getElementById('keyModal')) return;
+      document.getElementById('keyModal').classList.remove('active');
+      activeModalTarget = null;
+    }
+
+    function updateModChip() {
+      ['Ctrl', 'Shift', 'Alt', 'Win'].forEach(m => {
+        const chk = document.getElementById(`mod${m}`);
+        document.getElementById(`chip${m}`).classList.toggle('active', chk.checked);
+      });
+    }
+
+    function switchModalTab(tabName) {
+      document.querySelectorAll('.modal-tab-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.modal-tab-btn')).find(b => b.getAttribute('onclick')?.includes(tabName));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const grid = document.getElementById('modalGrid');
+      grid.innerHTML = '';
+
+      let items = [];
+      if (tabName === 'shortcuts') items = PALETTE_DATA.shortcuts;
+      else if (tabName === 'basic') items = PALETTE_DATA.basic;
+      else if (tabName === 'symbols') items = PALETTE_DATA.symbols;
+      else if (tabName === 'nav') items = PALETTE_DATA.mods.filter(k => !k.name.startsWith('L') && !k.name.startsWith('R'));
+      else if (tabName === 'mods') items = PALETTE_DATA.mods.filter(k => k.name.startsWith('L') || k.name.startsWith('R'));
+      else if (tabName === 'layers') items = PALETTE_DATA.layers;
+
+      items.forEach(k => {
+        const btn = document.createElement('div');
+        btn.className = 'modal-key-btn' + (tabName === 'shortcuts' ? ' is-shortcut' : '');
+        btn.textContent = k.name;
+        btn.onclick = () => selectKeyFromModal(k.code, tabName === 'shortcuts');
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectKeyFromModal(baseCode, isDirectShortcut = false) {
+      if (!activeModalTarget) return;
+
+      let finalCode = baseCode;
+      if (!isDirectShortcut) {
+        // Apply modifier checkboxes
+        let modMask = 0;
+        if (document.getElementById('modCtrl').checked) modMask |= 0x0100;
+        if (document.getElementById('modShift').checked) modMask |= 0x0200;
+        if (document.getElementById('modAlt').checked) modMask |= 0x0400;
+        if (document.getElementById('modWin').checked) modMask |= 0x0800;
+        finalCode = (baseCode & 0xFF) | modMask;
+      }
+
+      const { slotIdx, field } = activeModalTarget;
+      tdSlots[slotIdx][field] = finalCode;
+      renderTdTable();
+      applySingleTdSlot(slotIdx);
+
+      log(`TD ${slotIdx} ${field === 'tap' ? '단타' : '홀드'} -> ${getKeyName(finalCode)} (0x${finalCode.toString(16)}) 반영`, "success");
+      document.getElementById('keyModal').classList.remove('active');
+      activeModalTarget = null;
+    }
+
+    function applyHexInput() {
+      if (!activeModalTarget) return;
+      const val = document.getElementById('modalHexInput').value.trim();
+      let code = parseInt(val, 16);
+      if (isNaN(code)) code = parseInt(val, 10);
+      if (isNaN(code)) {
+        alert("올바른 16진수(예: 0x011D) 또는 10진수 숫자를 입력하세요.");
+        return;
+      }
+      selectKeyFromModal(code, true);
     }
 
     function log(msg, type = 'info') {
@@ -1258,6 +1728,7 @@
       return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     }
 
+    // WebHID Connection
     async function connectKeyboard() {
       if (!navigator.hid) {
         alert("이 브라우저는 WebHID를 지원하지 않습니다. 최신 Chrome 또는 Edge 브라우저를 사용해 주세요.");
@@ -1380,7 +1851,6 @@
 
     function readEntireKeymap() {
       if (!device || !device.opened) return;
-      // Read each key via VIA get_key command
       let delay = 0;
       for (let l = 0; l < 4; l++) {
         [...LAYOUT_DEF.left.rows.flat(), ...LAYOUT_DEF.left.thumbs, ...LAYOUT_DEF.right.rows.flat(), ...LAYOUT_DEF.right.thumbs].forEach(k => {
@@ -1431,7 +1901,8 @@
       }, 300);
     }
 
-    // Init
+    // Initialize UI
+    initDefaultKeymapCache();
     buildKeyboardHTML();
     showPaletteCat('basic');
     renderTdTable();
