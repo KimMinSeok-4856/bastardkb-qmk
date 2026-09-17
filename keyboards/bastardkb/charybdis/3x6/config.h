@@ -32,6 +32,10 @@
 /* VBUS detection. (Disabled for generic Pro Micro RP2040) */
 // #define USB_VBUS_PIN GP19
 
+/* Split synchronization options */
+#define SPLIT_LAYER_STATE_ENABLE
+#define SPLIT_LED_STATE_ENABLE
+
 /* SPI & PMW3360 settings. */
 #define SPI_DRIVER SPID0
 #define SPI_SCK_PIN GP22
