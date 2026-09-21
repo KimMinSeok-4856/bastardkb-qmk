@@ -13,6 +13,25 @@
 #include "via.h"
 #include "pointing_device_auto_mouse.h"
 #include "charybdis.h"
+#include "transactions.h"
+
+typedef struct {
+    uint8_t layer1_r;
+    uint8_t layer1_g;
+    uint8_t layer1_b;
+    uint8_t layer2_r;
+    uint8_t layer2_g;
+    uint8_t layer2_b;
+    uint8_t layer3_r;
+    uint8_t layer3_g;
+    uint8_t layer3_b;
+} split_rgb_sync_t;
+
+static bool g_split_rgb_sync_pending = false;
+static bool g_initial_slave_sync_done = false;
+
+static void slave_rgb_sync_callback(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer);
+
 
 // Tap Dance indexes
 enum tap_dance_indexes {
@@ -265,9 +284,55 @@ void save_user_config(void) {
     via_update_custom_config(&g_user_config, 0, sizeof(g_user_config));
 }
 
+static void slave_rgb_sync_callback(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
+    if (initiator2target_buffer_size >= sizeof(split_rgb_sync_t)) {
+        const split_rgb_sync_t *sync = (const split_rgb_sync_t *)initiator2target_buffer;
+        g_user_config.layer1_r = sync->layer1_r;
+        g_user_config.layer1_g = sync->layer1_g;
+        g_user_config.layer1_b = sync->layer1_b;
+        g_user_config.layer2_r = sync->layer2_r;
+        g_user_config.layer2_g = sync->layer2_g;
+        g_user_config.layer2_b = sync->layer2_b;
+        g_user_config.layer3_r = sync->layer3_r;
+        g_user_config.layer3_g = sync->layer3_g;
+        g_user_config.layer3_b = sync->layer3_b;
+    }
+}
+
 void keyboard_post_init_user(void) {
     load_user_config();
+    transaction_register_rpc(RPC_ID_USER_CONFIG_SYNC, slave_rgb_sync_callback);
+    if (is_keyboard_master()) {
+        g_split_rgb_sync_pending = true;
+    }
 }
+
+void housekeeping_task_user(void) {
+    if (is_keyboard_master()) {
+        static uint32_t last_sync_timer = 0;
+        if (g_split_rgb_sync_pending || !g_initial_slave_sync_done) {
+            if (timer_elapsed32(last_sync_timer) > 100) {
+                last_sync_timer = timer_read32();
+                split_rgb_sync_t sync = {
+                    .layer1_r = g_user_config.layer1_r,
+                    .layer1_g = g_user_config.layer1_g,
+                    .layer1_b = g_user_config.layer1_b,
+                    .layer2_r = g_user_config.layer2_r,
+                    .layer2_g = g_user_config.layer2_g,
+                    .layer2_b = g_user_config.layer2_b,
+                    .layer3_r = g_user_config.layer3_r,
+                    .layer3_g = g_user_config.layer3_g,
+                    .layer3_b = g_user_config.layer3_b
+                };
+                if (transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync)) {
+                    g_split_rgb_sync_pending = false;
+                    g_initial_slave_sync_done = true;
+                }
+            }
+        }
+    }
+}
+
 
 void pointing_device_init_user(void) {
     apply_user_config();
@@ -340,11 +405,13 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 g_user_config.layer3_g          = data[19];
                 g_user_config.layer3_b          = data[20];
                 apply_user_config();
+                g_split_rgb_sync_pending = true;
                 data[2] = 1; // success
                 break;
 
             case 0x03: // SAVE_EEPROM
                 save_user_config();
+                g_split_rgb_sync_pending = true;
                 data[2] = 1; // success
                 break;
 
@@ -373,6 +440,7 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 g_user_config.td_slots[10] = (td_config_slot_t){KC_LBRC, KC_RBRC};
                 apply_user_config();
                 save_user_config();
+                g_split_rgb_sync_pending = true;
                 data[2] = 1;
                 break;
 

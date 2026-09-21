@@ -20,3 +20,7 @@
 
 // VIA Custom EEPROM block (128 bytes)
 #define VIA_EEPROM_CUSTOM_CONFIG_SIZE 128
+
+// Split transaction for syncing dynamic RGB layer colors to slave
+#define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_CONFIG_SYNC
+
