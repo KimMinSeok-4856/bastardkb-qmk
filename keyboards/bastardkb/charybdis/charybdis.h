@@ -46,6 +46,10 @@ enum charybdis_keycodes {
 /** \brief Return the current DPI value for the pointer's default mode. */
 uint16_t charybdis_get_pointer_default_dpi(void);
 
+uint16_t charybdis_get_custom_default_dpi(void);
+uint16_t charybdis_get_custom_sniping_dpi(void);
+void     charybdis_update_cpi(void);
+
 /**
  * \brief Update the pointer's default DPI to the next or previous step.
  *

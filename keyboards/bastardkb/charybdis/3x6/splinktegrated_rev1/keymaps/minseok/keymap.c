@@ -242,10 +242,16 @@ static charybdis_user_config_t g_user_config = {
     }
 };
 
+uint16_t charybdis_get_custom_default_dpi(void) {
+    return (g_user_config.default_dpi >= 200 && g_user_config.default_dpi <= 3200) ? g_user_config.default_dpi : 0;
+}
+
+uint16_t charybdis_get_custom_sniping_dpi(void) {
+    return (g_user_config.sniping_dpi >= 100 && g_user_config.sniping_dpi <= 2000) ? g_user_config.sniping_dpi : 0;
+}
+
 void apply_user_config(void) {
-    if (g_user_config.default_dpi >= 200 && g_user_config.default_dpi <= 3200) {
-        pointing_device_set_cpi(g_user_config.default_dpi);
-    }
+    charybdis_update_cpi();
     set_auto_mouse_enable(g_user_config.auto_mouse_en != 0);
     set_auto_mouse_layer(g_user_config.auto_mouse_layer);
     if (g_user_config.auto_mouse_time >= 100) {

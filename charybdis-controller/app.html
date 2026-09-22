@@ -1093,7 +1093,7 @@
             <label for="snipingDpi">스나이핑 미세 감도 (Sniping DPI)</label>
             <span class="value-display" id="valSnipingDpi">200 DPI</span>
           </div>
-          <input type="range" id="snipingDpi" min="100" max="1000" step="50" value="200" oninput="document.getElementById('valSnipingDpi').textContent = this.value + ' DPI'">
+          <input type="range" id="snipingDpi" min="100" max="1000" step="50" value="200" oninput="document.getElementById('valSnipingDpi').textContent = this.value + ' DPI'; triggerLiveApply();">
         </div>
       </div>
 
@@ -1106,7 +1106,7 @@
           <div class="switch-container">
             <span class="switch-label">트랙볼 회전 시 자동 마우스 레이어 진입</span>
             <label class="switch">
-              <input type="checkbox" id="autoMouseEn" checked>
+              <input type="checkbox" id="autoMouseEn" checked onchange="triggerLiveApply()">
               <span class="slider"></span>
             </label>
           </div>
@@ -1116,14 +1116,14 @@
             <label for="autoMouseLayer">진입 목표 레이어</label>
             <span class="value-display" id="valAutoMouseLayer">Layer 3</span>
           </div>
-          <input type="range" id="autoMouseLayer" min="1" max="4" step="1" value="3" oninput="document.getElementById('valAutoMouseLayer').textContent = 'Layer ' + this.value">
+          <input type="range" id="autoMouseLayer" min="1" max="4" step="1" value="3" oninput="document.getElementById('valAutoMouseLayer').textContent = 'Layer ' + this.value; triggerLiveApply();">
         </div>
         <div class="control-row">
           <div class="label-wrap">
             <label for="autoMouseTime">마우스 모드 유지 시간 (복귀 딜레이)</label>
             <span class="value-display" id="valAutoMouseTime">650 ms</span>
           </div>
-          <input type="range" id="autoMouseTime" min="200" max="1500" step="50" value="650" oninput="document.getElementById('valAutoMouseTime').textContent = this.value + ' ms'">
+          <input type="range" id="autoMouseTime" min="200" max="1500" step="50" value="650" oninput="document.getElementById('valAutoMouseTime').textContent = this.value + ' ms'; triggerLiveApply();">
         </div>
       </div>
 
@@ -1137,13 +1137,13 @@
             <label for="dragBuffer">스크롤 누적 버퍼 (민감도: 작을수록 빠름)</label>
             <span class="value-display" id="valDragBuffer">20 버퍼</span>
           </div>
-          <input type="range" id="dragBuffer" min="5" max="50" step="1" value="20" oninput="document.getElementById('valDragBuffer').textContent = this.value + ' 버퍼'">
+          <input type="range" id="dragBuffer" min="5" max="50" step="1" value="20" oninput="document.getElementById('valDragBuffer').textContent = this.value + ' 버퍼'; triggerLiveApply();">
         </div>
         <div class="control-row">
           <div class="switch-container">
             <span class="switch-label">세로 스크롤 Y축 반전 (자연스러운 휠 스크롤)</span>
             <label class="switch">
-              <input type="checkbox" id="dragRevY" checked>
+              <input type="checkbox" id="dragRevY" checked onchange="triggerLiveApply()">
               <span class="slider"></span>
             </label>
           </div>
@@ -1159,21 +1159,21 @@
           <div class="rgb-item">
             <label>Layer 1</label>
             <div class="color-swatch-wrap">
-              <input type="color" id="colLayer1" value="#ff0000" oninput="updateHexText('hexL1', this.value)">
+              <input type="color" id="colLayer1" value="#ff0000" oninput="updateHexText('hexL1', this.value); triggerLiveApply();">
             </div>
             <span class="hex-text" id="hexL1">#FF0000</span>
           </div>
           <div class="rgb-item">
             <label>Layer 2</label>
             <div class="color-swatch-wrap">
-              <input type="color" id="colLayer2" value="#0000ff" oninput="updateHexText('hexL2', this.value)">
+              <input type="color" id="colLayer2" value="#0000ff" oninput="updateHexText('hexL2', this.value); triggerLiveApply();">
             </div>
             <span class="hex-text" id="hexL2">#0000FF</span>
           </div>
           <div class="rgb-item">
             <label>Layer 3</label>
             <div class="color-swatch-wrap">
-              <input type="color" id="colLayer3" value="#b400ff" oninput="updateHexText('hexL3', this.value)">
+              <input type="color" id="colLayer3" value="#b400ff" oninput="updateHexText('hexL3', this.value); triggerLiveApply();">
             </div>
             <span class="hex-text" id="hexL3">#B400FF</span>
           </div>
@@ -1710,8 +1710,20 @@
       box.scrollTop = box.scrollHeight;
     }
 
+    let liveApplyTimer = null;
+    let lastApplyWasSilent = false;
+
+    function triggerLiveApply() {
+      if (!device || !device.opened) return;
+      if (liveApplyTimer) clearTimeout(liveApplyTimer);
+      liveApplyTimer = setTimeout(() => {
+        applyToKeyboard(true);
+      }, 60);
+    }
+
     function updateDpiDisplay(val) {
       document.getElementById('valDefaultDpi').textContent = val + ' DPI';
+      triggerLiveApply();
     }
     function setDpi(val) {
       document.getElementById('defaultDpi').value = val;
@@ -1802,7 +1814,9 @@
         log("하드웨어 설정을 동기화했습니다. 탭댄스 슬롯 읽는 중...", "info");
         readAllTdSlots();
       } else if (sub === 0x02) {
-        log("하드웨어 설정이 즉시 반영되었습니다.", "success");
+        if (!lastApplyWasSilent) {
+          log("하드웨어 설정이 즉시 반영되었습니다.", "success");
+        }
       } else if (sub === 0x03) {
         log("키보드 내부 EEPROM에 영구 저장되었습니다!", "success");
       } else if (sub === 0x10) {
@@ -1868,7 +1882,8 @@
       }
     }
 
-    function applyToKeyboard() {
+    function applyToKeyboard(silent = false) {
+      lastApplyWasSilent = silent;
       const defaultDpi = parseInt(document.getElementById('defaultDpi').value);
       const snipingDpi = parseInt(document.getElementById('snipingDpi').value);
       const autoEn = document.getElementById('autoMouseEn').checked ? 1 : 0;
@@ -1889,7 +1904,7 @@
         l1.r, l1.g, l1.b, l2.r, l2.g, l2.b, l3.r, l3.g, l3.b
       ];
 
-      log("하드웨어 설정을 키보드에 적용하는 중...", "info");
+      if (!silent) log("하드웨어 설정을 키보드에 적용하는 중...", "info");
       sendCommand(0x02, payload);
     }
 

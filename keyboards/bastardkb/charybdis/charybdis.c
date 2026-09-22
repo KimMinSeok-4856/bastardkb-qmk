@@ -110,14 +110,28 @@ static uint16_t get_pointer_sniping_dpi(charybdis_config_t* config) {
     return (uint16_t)config->pointer_sniping_dpi * CHARYBDIS_SNIPING_DPI_CONFIG_STEP + CHARYBDIS_MINIMUM_SNIPING_DPI;
 }
 
+__attribute__((weak)) uint16_t charybdis_get_custom_default_dpi(void) {
+    return 0;
+}
+
+__attribute__((weak)) uint16_t charybdis_get_custom_sniping_dpi(void) {
+    return 0;
+}
+
+void charybdis_update_cpi(void) {
+    maybe_update_pointing_device_cpi(&g_charybdis_config);
+}
+
 /** \brief Set the appropriate DPI for the input config. */
 static void maybe_update_pointing_device_cpi(charybdis_config_t* config) {
     if (config->is_dragscroll_enabled) {
         pointing_device_set_cpi(CHARYBDIS_DRAGSCROLL_DPI);
     } else if (config->is_sniping_enabled) {
-        pointing_device_set_cpi(get_pointer_sniping_dpi(config));
+        uint16_t custom_sniping = charybdis_get_custom_sniping_dpi();
+        pointing_device_set_cpi(custom_sniping ? custom_sniping : get_pointer_sniping_dpi(config));
     } else {
-        pointing_device_set_cpi(get_pointer_default_dpi(config));
+        uint16_t custom_default = charybdis_get_custom_default_dpi();
+        pointing_device_set_cpi(custom_default ? custom_default : get_pointer_default_dpi(config));
     }
 }
 
