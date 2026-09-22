@@ -118,10 +118,6 @@ __attribute__((weak)) uint16_t charybdis_get_custom_sniping_dpi(void) {
     return 0;
 }
 
-void charybdis_update_cpi(void) {
-    maybe_update_pointing_device_cpi(&g_charybdis_config);
-}
-
 /** \brief Set the appropriate DPI for the input config. */
 static void maybe_update_pointing_device_cpi(charybdis_config_t* config) {
     if (config->is_dragscroll_enabled) {
@@ -133,6 +129,10 @@ static void maybe_update_pointing_device_cpi(charybdis_config_t* config) {
         uint16_t custom_default = charybdis_get_custom_default_dpi();
         pointing_device_set_cpi(custom_default ? custom_default : get_pointer_default_dpi(config));
     }
+}
+
+void charybdis_update_cpi(void) {
+    maybe_update_pointing_device_cpi(&g_charybdis_config);
 }
 
 /**
