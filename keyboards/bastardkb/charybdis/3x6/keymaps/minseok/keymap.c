@@ -166,8 +166,39 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   )
 };
 
+enum charybdis_custom_color_keycodes {
+    CKC_L1_COL = QK_KB_8,
+    CKC_L2_COL = QK_KB_9,
+    CKC_L3_COL = QK_KB_10,
+    CKC_L_COL  = QK_KB_11,
+};
+static void cycle_layer_color(uint8_t layer, bool reverse);
+
 // 탭댄스 키를 손에서 떼는 순간 0ms 딜레이로 즉시 기본 키(Tap) 입력 전송
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        bool rev = (get_mods() | get_oneshot_mods()) & MOD_MASK_SHIFT;
+        switch (keycode) {
+            case CKC_L1_COL:
+                cycle_layer_color(1, rev);
+                return false;
+            case CKC_L2_COL:
+                cycle_layer_color(2, rev);
+                return false;
+            case CKC_L3_COL:
+                cycle_layer_color(3, rev);
+                return false;
+            case CKC_L_COL: {
+                uint8_t cur_layer = get_highest_layer(layer_state);
+                if (cur_layer >= 1 && cur_layer <= 3) {
+                    cycle_layer_color(cur_layer, rev);
+                } else {
+                    cycle_layer_color(1, rev);
+                }
+                return false;
+            }
+        }
+    }
 #ifndef VIAL_ENABLE
     switch (keycode) {
         case QK_TAP_DANCE ... QK_TAP_DANCE_MAX: {
@@ -293,6 +324,65 @@ void save_user_config(void) {
     }
     via_update_custom_config(&g_user_config, 0, sizeof(g_user_config));
 }
+
+static const struct { uint8_t r, g, b; } g_color_presets[] = {
+    {255,   0,   0}, // 빨강 (Red)
+    {255,  80,   0}, // 주황 (Orange)
+    {255, 200,   0}, // 노랑 (Yellow)
+    {  0, 255,   0}, // 초록 (Green)
+    {  0, 255, 255}, // 하늘 (Cyan)
+    {  0,   0, 255}, // 파랑 (Blue)
+    {180,   0, 255}, // 보라 (Purple)
+    {255,   0, 150}, // 핑크 (Pink)
+    {255, 255, 255}, // 흰색 (White)
+    {  0,   0,   0}, // 끔 (Off)
+};
+#define NUM_COLOR_PRESETS (sizeof(g_color_presets) / sizeof(g_color_presets[0]))
+
+static void cycle_layer_color(uint8_t layer, bool reverse) {
+    if (layer < 1 || layer > 3) return;
+
+    uint8_t cur_r = (layer == 1) ? g_user_config.layer1_r : (layer == 2) ? g_user_config.layer2_r : g_user_config.layer3_r;
+    uint8_t cur_g = (layer == 1) ? g_user_config.layer1_g : (layer == 2) ? g_user_config.layer2_g : g_user_config.layer3_g;
+    uint8_t cur_b = (layer == 1) ? g_user_config.layer1_b : (layer == 2) ? g_user_config.layer2_b : g_user_config.layer3_b;
+
+    int current_idx = -1;
+    for (int i = 0; i < (int)NUM_COLOR_PRESETS; i++) {
+        if (g_color_presets[i].r == cur_r && g_color_presets[i].g == cur_g && g_color_presets[i].b == cur_b) {
+            current_idx = i;
+            break;
+        }
+    }
+
+    int next_idx;
+    if (current_idx == -1) {
+        next_idx = 0;
+    } else {
+        next_idx = reverse ? (current_idx + NUM_COLOR_PRESETS - 1) % NUM_COLOR_PRESETS : (current_idx + 1) % NUM_COLOR_PRESETS;
+    }
+
+    uint8_t new_r = g_color_presets[next_idx].r;
+    uint8_t new_g = g_color_presets[next_idx].g;
+    uint8_t new_b = g_color_presets[next_idx].b;
+
+    if (layer == 1) {
+        g_user_config.layer1_r = new_r;
+        g_user_config.layer1_g = new_g;
+        g_user_config.layer1_b = new_b;
+    } else if (layer == 2) {
+        g_user_config.layer2_r = new_r;
+        g_user_config.layer2_g = new_g;
+        g_user_config.layer2_b = new_b;
+    } else if (layer == 3) {
+        g_user_config.layer3_r = new_r;
+        g_user_config.layer3_g = new_g;
+        g_user_config.layer3_b = new_b;
+    }
+
+    save_user_config();
+    g_split_rgb_sync_pending = true;
+}
+
 
 static void slave_rgb_sync_callback(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
     if (initiator2target_buffer_size >= sizeof(split_rgb_sync_t)) {

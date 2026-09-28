@@ -222,6 +222,26 @@
             "name": "DRG_TOG",
             "title": "Drag Scroll (Toggle)",
             "shortName": "DRG_TG"
+        },
+        {
+            "name": "L1_COL",
+            "title": "Layer 1 Color Cycle",
+            "shortName": "L1_RGB"
+        },
+        {
+            "name": "L2_COL",
+            "title": "Layer 2 Color Cycle",
+            "shortName": "L2_RGB"
+        },
+        {
+            "name": "L3_COL",
+            "title": "Layer 3 Color Cycle",
+            "shortName": "L3_RGB"
+        },
+        {
+            "name": "L_COL",
+            "title": "Current Layer Color Cycle",
+            "shortName": "L_RGB"
         }
     ]
 }
