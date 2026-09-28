@@ -24,3 +24,15 @@
 // Split transaction for syncing dynamic RGB layer colors to slave
 #define SPLIT_TRANSACTION_IDS_USER RPC_ID_USER_CONFIG_SYNC
 
+#ifdef VIAL_ENABLE
+#    define VIAL_KEYBOARD_UID { 0x6D, 0xA5, 0xCD, 0x8D, 0xC7, 0x3D, 0x7B, 0xA8 }
+#    define VIAL_UNLOCK_COMBO_ROWS { 0, 4 }
+#    define VIAL_UNLOCK_COMBO_COLS { 0, 0 }
+#    define VIAL_INSECURE
+#    define DYNAMIC_KEYMAP_LAYER_COUNT 4
+#    define DYNAMIC_KEYMAP_MACRO_COUNT 32
+#    define VIAL_TAP_DANCE_ENTRIES 32
+#    define VIAL_COMBO_ENTRIES 32
+#    define VIAL_KEY_OVERRIDE_ENTRIES 32
+#endif
+

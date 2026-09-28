@@ -103,6 +103,7 @@ static tap_dance_tap_hold_t td_tap_holds[] = {
         .user_data = (void *)&td_tap_holds[idx], \
     }
 
+#ifndef VIAL_ENABLE
 tap_dance_action_t tap_dance_actions[] = {
     [TD_0]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_0),
     [TD_1]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_1),
@@ -116,6 +117,7 @@ tap_dance_action_t tap_dance_actions[] = {
     [TD_9]  = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_9),
     [TD_10] = ACTION_TAP_DANCE_TAP_HOLD_IDX(TD_10),
 };
+#endif
 
 // Keymaps
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -166,6 +168,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 // 탭댄스 키를 손에서 떼는 순간 0ms 딜레이로 즉시 기본 키(Tap) 입력 전송
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+#ifndef VIAL_ENABLE
     switch (keycode) {
         case QK_TAP_DANCE ... QK_TAP_DANCE_MAX: {
             uint16_t idx = QK_TAP_DANCE_GET_INDEX(keycode);
@@ -178,6 +181,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             break;
         }
     }
+#endif
     return true;
 }
 
@@ -484,10 +488,15 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 data[1] = 0xFF;
                 break;
         }
-        raw_hid_send(data, length);
         return true;
     }
     return false;
+}
+
+void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
+    if (!via_command_kb(data, length)) {
+        data[0] = 0xFF;
+    }
 }
 
 // Layer-dependent RGB Matrix Indicators (Dynamic live colors)
