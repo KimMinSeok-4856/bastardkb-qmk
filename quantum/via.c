@@ -56,6 +56,7 @@
 #include "version.h" // for QMK_BUILDDATE used in EEPROM magic
 #include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
 #include "quantum/nvm/eeprom/nvm_eeprom_via_internal.h"
+#include "nvm_via.h"
 
 #ifdef VIAL_ENABLE
 #include "vial.h"
@@ -178,6 +179,15 @@ void via_set_layout_options(uint32_t value) {
         target--;
     }
 }
+
+#if VIA_EEPROM_CUSTOM_CONFIG_SIZE > 0
+uint32_t via_read_custom_config(void *buf, uint32_t offset, uint32_t length) {
+    return nvm_via_read_custom_config(buf, offset, length);
+}
+uint32_t via_update_custom_config(const void *buf, uint32_t offset, uint32_t length) {
+    return nvm_via_update_custom_config(buf, offset, length);
+}
+#endif
 
 // Called by QMK core to process VIA-specific keycodes.
 bool process_record_via(uint16_t keycode, keyrecord_t *record) {
