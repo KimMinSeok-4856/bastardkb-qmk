@@ -3,7 +3,10 @@
     "vendorId": "0xA8F8",
     "productId": "0x1834",
     "lighting": "vialrgb",
-    "matrix": { "rows": 8, "cols": 6 },
+    "matrix": {
+        "rows": 8,
+        "cols": 6
+    },
     "layouts": {
         "keymap": [
             [
@@ -178,5 +181,47 @@
                 "7,3"
             ]
         ]
-    }
+    },
+    "customKeycodes": [
+        {
+            "name": "DPI_MOD",
+            "title": "Default DPI Up",
+            "shortName": "DPI+"
+        },
+        {
+            "name": "DPI_RMOD",
+            "title": "Default DPI Down",
+            "shortName": "DPI-"
+        },
+        {
+            "name": "S_D_MOD",
+            "title": "Sniping DPI Up",
+            "shortName": "S_DPI+"
+        },
+        {
+            "name": "S_D_RMOD",
+            "title": "Sniping DPI Down",
+            "shortName": "S_DPI-"
+        },
+        {
+            "name": "SNIPING",
+            "title": "Sniper Mode (Momentary)",
+            "shortName": "SNIPE"
+        },
+        {
+            "name": "SNP_TOG",
+            "title": "Sniper Mode (Toggle)",
+            "shortName": "SNP_TG"
+        },
+        {
+            "name": "DRGSCRL",
+            "title": "Drag Scroll (Momentary)",
+            "shortName": "DRAG"
+        },
+        {
+            "name": "DRG_TOG",
+            "title": "Drag Scroll (Toggle)",
+            "shortName": "DRG_TG"
+        }
+    ]
 }
