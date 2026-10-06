@@ -14,6 +14,7 @@
 #include "pointing_device_auto_mouse.h"
 #include "charybdis.h"
 #include "transactions.h"
+#include "ws2812.h"
 
 typedef struct {
     uint8_t layer1_r;
@@ -25,6 +26,7 @@ typedef struct {
     uint8_t layer3_r;
     uint8_t layer3_g;
     uint8_t layer3_b;
+    uint8_t suspended;
 } split_rgb_sync_t;
 
 static bool g_split_rgb_sync_pending = false;
@@ -216,9 +218,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-// Charybdis WebHID Custom Configuration Struct (Extended for Tap Dance)
+// Charybdis WebHID Custom Configuration Struct (Extended for Tap Dance & RGB Sleep Timeout)
 #define CHARYBDIS_CONFIG_MAGIC 0xCB
-#define CHARYBDIS_CONFIG_VERSION 2
+#define CHARYBDIS_CONFIG_VERSION 3
 #define NUM_TD_SLOTS 11
 
 typedef struct {
@@ -245,7 +247,9 @@ typedef struct {
     uint8_t layer3_r;
     uint8_t layer3_g;
     uint8_t layer3_b;
-    uint8_t reserved[12];
+    uint8_t rgb_timeout_hi;
+    uint8_t rgb_timeout_lo;
+    uint8_t reserved[10];
     td_config_slot_t td_slots[NUM_TD_SLOTS];
 } charybdis_user_config_t;
 
@@ -262,6 +266,8 @@ static charybdis_user_config_t g_user_config = {
     .layer1_r = 255, .layer1_g = 0, .layer1_b = 0,
     .layer2_r = 0, .layer2_g = 0, .layer2_b = 255,
     .layer3_r = 180, .layer3_g = 0, .layer3_b = 255,
+    .rgb_timeout_hi = 0,
+    .rgb_timeout_lo = 60, // 기본 60초 (1분)
     .td_slots = {
         [0]  = {KC_N, KC_B},
         [1]  = {KC_Z, LCTL(KC_Z)},
@@ -276,6 +282,10 @@ static charybdis_user_config_t g_user_config = {
         [10] = {KC_LBRC, KC_RBRC}
     }
 };
+
+uint16_t charybdis_get_custom_rgb_timeout_sec(void) {
+    return ((uint16_t)g_user_config.rgb_timeout_hi << 8) | g_user_config.rgb_timeout_lo;
+}
 
 uint16_t charybdis_get_custom_default_dpi(void) {
     return (g_user_config.default_dpi >= 200 && g_user_config.default_dpi <= 3200) ? g_user_config.default_dpi : 0;
@@ -305,11 +315,22 @@ void apply_user_config(void) {
     }
 }
 
+void save_user_config(void);
+
 void load_user_config(void) {
     charybdis_user_config_t loaded;
     if (via_read_custom_config(&loaded, 0, sizeof(loaded)) == sizeof(loaded)) {
-        if (loaded.magic == CHARYBDIS_CONFIG_MAGIC && loaded.version == CHARYBDIS_CONFIG_VERSION) {
-            g_user_config = loaded;
+        if (loaded.magic == CHARYBDIS_CONFIG_MAGIC) {
+            if (loaded.version == CHARYBDIS_CONFIG_VERSION) {
+                g_user_config = loaded;
+            } else if (loaded.version == 2) {
+                // v2에서 마이그레이션: 기존 DPI/RGB/TD 설정 유지, 타임아웃 기본값 1분(60초) 설정
+                g_user_config = loaded;
+                g_user_config.version = CHARYBDIS_CONFIG_VERSION;
+                g_user_config.rgb_timeout_hi = 0;
+                g_user_config.rgb_timeout_lo = 60;
+                save_user_config();
+            }
         }
     }
     apply_user_config();
@@ -396,6 +417,11 @@ static void slave_rgb_sync_callback(uint8_t initiator2target_buffer_size, const 
         g_user_config.layer3_r = sync->layer3_r;
         g_user_config.layer3_g = sync->layer3_g;
         g_user_config.layer3_b = sync->layer3_b;
+        rgb_matrix_set_suspend_state(sync->suspended != 0);
+        if (sync->suspended) {
+            ws2812_set_color_all(0, 0, 0);
+            ws2812_flush();
+        }
     }
 }
 
@@ -407,11 +433,36 @@ void keyboard_post_init_user(void) {
     }
 }
 
+static bool g_usb_suspended = false;
+
 void housekeeping_task_user(void) {
     if (is_keyboard_master()) {
+        uint16_t timeout_sec = charybdis_get_custom_rgb_timeout_sec();
+        bool is_idle = false;
+        if (timeout_sec > 0) {
+            uint32_t elapsed_ms = last_input_activity_elapsed();
+            if (elapsed_ms > ((uint32_t)timeout_sec * 1000)) {
+                is_idle = true;
+            }
+        }
+
+        bool should_suspend = g_usb_suspended || is_idle;
+        bool cur_suspend = rgb_matrix_get_suspend_state();
+
         static uint32_t last_sync_timer = 0;
+
+        if (should_suspend != cur_suspend) {
+            rgb_matrix_set_suspend_state(should_suspend);
+            if (should_suspend) {
+                ws2812_set_color_all(0, 0, 0);
+                ws2812_flush();
+            }
+            g_split_rgb_sync_pending = true;
+            last_sync_timer = 0; // 상태 변경 시 즉시 슬레이브 동기화 전송
+        }
+
         if (g_split_rgb_sync_pending || !g_initial_slave_sync_done) {
-            if (timer_elapsed32(last_sync_timer) > 100) {
+            if (last_sync_timer == 0 || timer_elapsed32(last_sync_timer) > 50) {
                 last_sync_timer = timer_read32();
                 split_rgb_sync_t sync = {
                     .layer1_r = g_user_config.layer1_r,
@@ -422,7 +473,8 @@ void housekeeping_task_user(void) {
                     .layer2_b = g_user_config.layer2_b,
                     .layer3_r = g_user_config.layer3_r,
                     .layer3_g = g_user_config.layer3_g,
-                    .layer3_b = g_user_config.layer3_b
+                    .layer3_b = g_user_config.layer3_b,
+                    .suspended = should_suspend ? 1 : 0
                 };
                 if (transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync)) {
                     g_split_rgb_sync_pending = false;
@@ -430,6 +482,36 @@ void housekeeping_task_user(void) {
                 }
             }
         }
+    }
+}
+
+void suspend_power_down_user(void) {
+    g_usb_suspended = true;
+    rgb_matrix_set_suspend_state(true);
+    ws2812_set_color_all(0, 0, 0);
+    ws2812_flush();
+    if (is_keyboard_master()) {
+        split_rgb_sync_t sync = {
+            .layer1_r = g_user_config.layer1_r,
+            .layer1_g = g_user_config.layer1_g,
+            .layer1_b = g_user_config.layer1_b,
+            .layer2_r = g_user_config.layer2_r,
+            .layer2_g = g_user_config.layer2_g,
+            .layer2_b = g_user_config.layer2_b,
+            .layer3_r = g_user_config.layer3_r,
+            .layer3_g = g_user_config.layer3_g,
+            .layer3_b = g_user_config.layer3_b,
+            .suspended = 1
+        };
+        transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync);
+    }
+}
+
+void suspend_wakeup_init_user(void) {
+    g_usb_suspended = false;
+    rgb_matrix_set_suspend_state(false);
+    if (is_keyboard_master()) {
+        g_split_rgb_sync_pending = true;
     }
 }
 
@@ -485,6 +567,8 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 data[18] = g_user_config.layer3_r;
                 data[19] = g_user_config.layer3_g;
                 data[20] = g_user_config.layer3_b;
+                data[21] = g_user_config.rgb_timeout_hi;
+                data[22] = g_user_config.rgb_timeout_lo;
                 break;
 
             case 0x02: // SET_CONFIG (Live apply)
@@ -504,6 +588,8 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 g_user_config.layer3_r          = data[18];
                 g_user_config.layer3_g          = data[19];
                 g_user_config.layer3_b          = data[20];
+                g_user_config.rgb_timeout_hi    = data[21];
+                g_user_config.rgb_timeout_lo    = data[22];
                 apply_user_config();
                 g_split_rgb_sync_pending = true;
                 data[2] = 1; // success
@@ -526,6 +612,8 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 g_user_config.layer1_r = 255; g_user_config.layer1_g = 0;   g_user_config.layer1_b = 0;
                 g_user_config.layer2_r = 0;   g_user_config.layer2_g = 0;   g_user_config.layer2_b = 255;
                 g_user_config.layer3_r = 180; g_user_config.layer3_g = 0;   g_user_config.layer3_b = 255;
+                g_user_config.rgb_timeout_hi    = 0;
+                g_user_config.rgb_timeout_lo    = 60; // 60초 (1분)
                 // Reset TD slots
                 g_user_config.td_slots[0]  = (td_config_slot_t){KC_N, KC_B};
                 g_user_config.td_slots[1]  = (td_config_slot_t){KC_Z, LCTL(KC_Z)};
@@ -591,6 +679,10 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 
 // Layer-dependent RGB Matrix Indicators (Dynamic live colors)
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
+    if (rgb_matrix_get_suspend_state()) {
+        return false;
+    }
+
     uint8_t current_layer = get_highest_layer(layer_state);
 
     switch (current_layer) {
