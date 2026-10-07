@@ -8,6 +8,10 @@
 #define RGB_DISABLE_WHEN_USB_SUSPENDED
 #define RGB_MATRIX_TIMEOUT 0 // 동적 타이머(Vial GUI 설정)로 제어
 
+// 탭/홀드 판정 최적화 (스페이스 단타 직후 길게 누름 시 레이어2 씹힘 100% 방지)
+#define QUICK_TAP_TERM 0
+#define PERMISSIVE_HOLD
+
 // Trackball Mouse Pointer Sensitivity (기본 1600 -> 800으로 절반 감속)
 #define PMW33XX_CPI 800
 #define CHARYBDIS_MINIMUM_DEFAULT_DPI 800

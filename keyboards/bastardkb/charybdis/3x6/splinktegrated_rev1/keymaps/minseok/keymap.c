@@ -176,6 +176,11 @@ enum charybdis_custom_color_keycodes {
 };
 static void cycle_layer_color(uint8_t layer, bool reverse);
 
+// 한글 시프트 롤오버 오타 방지 (깨 -> 꺠, 있다 -> 있따 원천 차단)
+static uint16_t s_shift_suppressed_key = 0;
+static uint32_t s_last_double_consonant_time = 0;
+static uint16_t s_last_double_consonant_key = 0;
+
 // 탭댄스 키를 손에서 떼는 순간 0ms 딜레이로 즉시 기본 키(Tap) 입력 전송
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
@@ -199,6 +204,58 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 }
                 return false;
             }
+        }
+
+        // --- 한글 시프트 롤오버 스마트 보정 ---
+        uint8_t mods = get_mods();
+        bool is_shift = (mods & MOD_MASK_SHIFT);
+        // Ctrl, Alt, Win 등 다른 수식키가 눌려 있으면 시스템/개발 단축키(Ctrl+Shift+F 등)이므로 100% 바이패스
+        bool has_other_mods = (mods & (MOD_MASK_CTRL | MOD_MASK_ALT | MOD_MASK_GUI));
+
+        if (is_shift && !has_other_mods) {
+            bool should_suppress = false;
+            uint16_t send_key = keycode;
+
+            // 직전에 쌍자음(ㄲ, ㅆ, ㄸ, ㅃ, ㅉ)을 친 지 120ms 이내에 들어온 후속 키인지 검사
+            if (timer_elapsed32(s_last_double_consonant_time) < 120) {
+                // 패턴 1: 쌍자음 직후 모음 ㅐ(O), ㅔ(P) -> "깨", "께" 등 ('꺠', '꼐' 오타 방지)
+                if (keycode == KC_O || keycode == KC_P) {
+                    should_suppress = true;
+                    send_key = keycode;
+                }
+                // 패턴 2: 받침 ㅆ(T) 직후 자음 ㄷ(E/TD_5), ㄱ(R), ㅈ(W), ㅅ(T), ㅂ(Q) -> "있다", "있고", "있지" 등 ('있따' 오타 방지)
+                else if (s_last_double_consonant_key == KC_T) {
+                    if (keycode == KC_E || keycode == TD(TD_5)) {
+                        should_suppress = true;
+                        send_key = KC_E;
+                    } else if (keycode == KC_R || keycode == KC_W || keycode == KC_T || keycode == KC_Q) {
+                        should_suppress = true;
+                        send_key = keycode;
+                    }
+                }
+            }
+
+            if (should_suppress) {
+                s_shift_suppressed_key = keycode;
+                del_mods(MOD_MASK_SHIFT);
+                send_keyboard_report();
+                tap_code16(send_key);
+                set_mods(mods);
+                send_keyboard_report();
+                return false;
+            }
+
+            // 쌍자음 유발 키 기록 (R:ㄱ->ㄲ, T:ㅅ->ㅆ, Q:ㅂ->ㅃ, W:ㅈ->ㅉ, E/TD_5:ㄷ->ㄸ)
+            if (keycode == KC_R || keycode == KC_T || keycode == KC_Q || keycode == KC_W || keycode == KC_E || keycode == TD(TD_5)) {
+                s_last_double_consonant_time = timer_read32();
+                s_last_double_consonant_key = (keycode == TD(TD_5)) ? KC_E : keycode;
+            }
+        }
+    } else {
+        // 키에서 손을 뗄 때 (UP)
+        if (s_shift_suppressed_key && keycode == s_shift_suppressed_key) {
+            s_shift_suppressed_key = 0;
+            return false;
         }
     }
 #ifndef VIAL_ENABLE
