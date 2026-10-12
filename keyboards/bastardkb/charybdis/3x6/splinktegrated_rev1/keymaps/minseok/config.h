@@ -3,6 +3,11 @@
 #define SPLIT_LAYER_STATE_ENABLE
 #define SPLIT_LED_STATE_ENABLE
 
+// PC 콜드 부팅 시 USB 인식 대기 시간 연장 및 워치독 자동 재부팅 (USB 재연결 필요 현상 방지)
+#define SPLIT_USB_TIMEOUT 5000
+#define SPLIT_WATCHDOG_ENABLE
+#define SPLIT_WATCHDOG_TIMEOUT 6000
+
 // PC 절전 모드(USB Suspend) 감지 시 키보드 LED 자동 소등
 #define RGB_MATRIX_SLEEP
 #define RGB_DISABLE_WHEN_USB_SUSPENDED
