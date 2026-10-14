@@ -15,6 +15,7 @@
 #include "charybdis.h"
 #include "transactions.h"
 #include "split_util.h"
+#include "ws2812.h"
 
 typedef struct {
     uint8_t layer1_r;
@@ -26,6 +27,7 @@ typedef struct {
     uint8_t layer3_r;
     uint8_t layer3_g;
     uint8_t layer3_b;
+    uint8_t suspended;
 } split_rgb_sync_t;
 
 static bool g_split_rgb_sync_pending = false;
@@ -302,6 +304,11 @@ static bool process_smart_bracket_quotes(uint16_t keycode, keyrecord_t *record) 
     return true;
 }
 
+// 한글 시프트 롤오버 오타 방지 (깨 -> 꺠, 있다 -> 있따 원천 차단)
+static uint16_t s_shift_suppressed_key = 0;
+static uint32_t s_last_double_consonant_time = 0;
+static uint16_t s_last_double_consonant_key = 0;
+
 // 탭댄스 키를 손에서 떼는 순간 0ms 딜레이로 즉시 기본 키(Tap) 입력 전송
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
@@ -340,6 +347,58 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 return false;
             }
         }
+
+        // --- 한글 시프트 롤오버 스마트 보정 ---
+        uint8_t mods = get_mods();
+        bool is_shift = (mods & MOD_MASK_SHIFT);
+        // Ctrl, Alt, Win 등 다른 수식키가 눌려 있으면 시스템/개발 단축키(Ctrl+Shift+F 등)이므로 100% 바이패스
+        bool has_other_mods = (mods & (MOD_MASK_CTRL | MOD_MASK_ALT | MOD_MASK_GUI));
+
+        if (is_shift && !has_other_mods) {
+            bool should_suppress = false;
+            uint16_t send_key = keycode;
+
+            // 직전에 쌍자음(ㄲ, ㅆ, ㄸ, ㅃ, ㅉ)을 친 지 120ms 이내에 들어온 후속 키인지 검사
+            if (timer_elapsed32(s_last_double_consonant_time) < 120) {
+                // 패턴 1: 쌍자음 직후 모음 ㅐ(O), ㅔ(P) -> "깨", "께" 등 ('꺠', '꼐' 오타 방지)
+                if (keycode == KC_O || keycode == KC_P) {
+                    should_suppress = true;
+                    send_key = keycode;
+                }
+                // 패턴 2: 받침 ㅆ(T) 직후 자음 ㄷ(E/TD_5), ㄱ(R), ㅈ(W), ㅅ(T), ㅂ(Q) -> "있다", "있고", "있지" 등 ('있따' 오타 방지)
+                else if (s_last_double_consonant_key == KC_T) {
+                    if (keycode == KC_E || keycode == TD(TD_5)) {
+                        should_suppress = true;
+                        send_key = KC_E;
+                    } else if (keycode == KC_R || keycode == KC_W || keycode == KC_T || keycode == KC_Q) {
+                        should_suppress = true;
+                        send_key = keycode;
+                    }
+                }
+            }
+
+            if (should_suppress) {
+                s_shift_suppressed_key = keycode;
+                del_mods(MOD_MASK_SHIFT);
+                send_keyboard_report();
+                tap_code16(send_key);
+                set_mods(mods);
+                send_keyboard_report();
+                return false;
+            }
+
+            // 쌍자음 유발 키 기록 (R:ㄱ->ㄲ, T:ㅅ->ㅆ, Q:ㅂ->ㅃ, W:ㅈ->ㅉ, E/TD_5:ㄷ->ㄸ)
+            if (keycode == KC_R || keycode == KC_T || keycode == KC_Q || keycode == KC_W || keycode == KC_E || keycode == TD(TD_5)) {
+                s_last_double_consonant_time = timer_read32();
+                s_last_double_consonant_key = (keycode == TD(TD_5)) ? KC_E : keycode;
+            }
+        }
+    } else {
+        // 키에서 손을 뗄 때 (UP)
+        if (s_shift_suppressed_key && keycode == s_shift_suppressed_key) {
+            s_shift_suppressed_key = 0;
+            return false;
+        }
     }
 #ifndef VIAL_ENABLE
     switch (keycode) {
@@ -358,9 +417,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-// Charybdis WebHID Custom Configuration Struct (Extended for Tap Dance)
+// Charybdis WebHID Custom Configuration Struct (Extended for Tap Dance & RGB Sleep Timeout)
 #define CHARYBDIS_CONFIG_MAGIC 0xCB
-#define CHARYBDIS_CONFIG_VERSION 2
+#define CHARYBDIS_CONFIG_VERSION 4
 #define NUM_TD_SLOTS 11
 
 typedef struct {
@@ -387,7 +446,12 @@ typedef struct {
     uint8_t layer3_r;
     uint8_t layer3_g;
     uint8_t layer3_b;
-    uint8_t reserved[12];
+    uint8_t rgb_timeout_hi;
+    uint8_t rgb_timeout_lo;
+    uint8_t palm_rejection_en;
+    uint8_t palm_timeout_hi;
+    uint8_t palm_timeout_lo;
+    uint8_t reserved[7];
     td_config_slot_t td_slots[NUM_TD_SLOTS];
 } charybdis_user_config_t;
 
@@ -404,6 +468,11 @@ static charybdis_user_config_t g_user_config = {
     .layer1_r = 255, .layer1_g = 0, .layer1_b = 0,
     .layer2_r = 0, .layer2_g = 0, .layer2_b = 255,
     .layer3_r = 180, .layer3_g = 0, .layer3_b = 255,
+    .rgb_timeout_hi = 0,
+    .rgb_timeout_lo = 60, // 기본 60초 (1분)
+    .palm_rejection_en = 1,
+    .palm_timeout_hi = 0,
+    .palm_timeout_lo = 200, // 기본 200ms
     .td_slots = {
         [0]  = {KC_N, KC_B},
         [1]  = {KC_Z, LCTL(KC_Z)},
@@ -418,6 +487,10 @@ static charybdis_user_config_t g_user_config = {
         [10] = {KC_LBRC, KC_RBRC}
     }
 };
+
+uint16_t charybdis_get_custom_rgb_timeout_sec(void) {
+    return ((uint16_t)g_user_config.rgb_timeout_hi << 8) | g_user_config.rgb_timeout_lo;
+}
 
 uint16_t charybdis_get_custom_default_dpi(void) {
     return (g_user_config.default_dpi >= 200 && g_user_config.default_dpi <= 3200) ? g_user_config.default_dpi : 0;
@@ -447,11 +520,33 @@ void apply_user_config(void) {
     }
 }
 
+void save_user_config(void);
+
 void load_user_config(void) {
     charybdis_user_config_t loaded;
     if (via_read_custom_config(&loaded, 0, sizeof(loaded)) == sizeof(loaded)) {
-        if (loaded.magic == CHARYBDIS_CONFIG_MAGIC && loaded.version == CHARYBDIS_CONFIG_VERSION) {
-            g_user_config = loaded;
+        if (loaded.magic == CHARYBDIS_CONFIG_MAGIC) {
+            if (loaded.version == CHARYBDIS_CONFIG_VERSION) {
+                g_user_config = loaded;
+            } else if (loaded.version == 2) {
+                // v2에서 마이그레이션: 기존 DPI/RGB/TD 설정 유지, 타임아웃 기본값 1분(60초), 팜 리젝션 기본값 설정
+                g_user_config = loaded;
+                g_user_config.version = CHARYBDIS_CONFIG_VERSION;
+                g_user_config.rgb_timeout_hi = 0;
+                g_user_config.rgb_timeout_lo = 60;
+                g_user_config.palm_rejection_en = 1;
+                g_user_config.palm_timeout_hi = 0;
+                g_user_config.palm_timeout_lo = 200;
+                save_user_config();
+            } else if (loaded.version == 3) {
+                // v3에서 마이그레이션: 기존 설정 유지, 팜 리젝션 활성화 및 200ms 설정
+                g_user_config = loaded;
+                g_user_config.version = CHARYBDIS_CONFIG_VERSION;
+                g_user_config.palm_rejection_en = 1;
+                g_user_config.palm_timeout_hi = 0;
+                g_user_config.palm_timeout_lo = 200;
+                save_user_config();
+            }
         }
     }
     apply_user_config();
@@ -538,6 +633,11 @@ static void slave_rgb_sync_callback(uint8_t initiator2target_buffer_size, const 
         g_user_config.layer3_r = sync->layer3_r;
         g_user_config.layer3_g = sync->layer3_g;
         g_user_config.layer3_b = sync->layer3_b;
+        rgb_matrix_set_suspend_state(sync->suspended != 0);
+        if (sync->suspended) {
+            ws2812_set_color_all(0, 0, 0);
+            ws2812_flush();
+        }
     }
 }
 
@@ -549,9 +649,34 @@ void keyboard_post_init_user(void) {
     }
 }
 
+static bool g_usb_suspended = false;
+
 void housekeeping_task_user(void) {
     if (is_keyboard_master()) {
+        uint16_t timeout_sec = charybdis_get_custom_rgb_timeout_sec();
+        bool is_idle = false;
+        if (timeout_sec > 0) {
+            uint32_t elapsed_ms = last_input_activity_elapsed();
+            if (elapsed_ms > ((uint32_t)timeout_sec * 1000)) {
+                is_idle = true;
+            }
+        }
+
+        bool should_suspend = g_usb_suspended || is_idle;
+        bool cur_suspend = rgb_matrix_get_suspend_state();
+
         static uint32_t last_sync_timer = 0;
+
+        if (should_suspend != cur_suspend) {
+            rgb_matrix_set_suspend_state(should_suspend);
+            if (should_suspend) {
+                ws2812_set_color_all(0, 0, 0);
+                ws2812_flush();
+            }
+            g_split_rgb_sync_pending = true;
+            last_sync_timer = 0; // 상태 변경 시 즉시 슬레이브 동기화 전송
+        }
+
         if (g_split_rgb_sync_pending || !g_initial_slave_sync_done) {
             // 슬레이브가 정상 연결되었을 때 동기화 RPC 전송 (부팅 직후 조기 취소 방지)
             if (is_transport_connected()) {
@@ -566,7 +691,8 @@ void housekeeping_task_user(void) {
                         .layer2_b = g_user_config.layer2_b,
                         .layer3_r = g_user_config.layer3_r,
                         .layer3_g = g_user_config.layer3_g,
-                        .layer3_b = g_user_config.layer3_b
+                        .layer3_b = g_user_config.layer3_b,
+                        .suspended = should_suspend ? 1 : 0
                     };
                     if (transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync)) {
                         g_split_rgb_sync_pending = false;
@@ -575,6 +701,45 @@ void housekeeping_task_user(void) {
                 }
             }
         }
+
+        // 트랙볼 센서가 초기화 실패(INIT_FAILED) 상태인 경우 1초마다 자동 복구(Auto-recovery) 재시도
+        if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
+            static uint32_t last_sensor_retry = 0;
+            if (timer_elapsed32(last_sensor_retry) > 1000) {
+                last_sensor_retry = timer_read32();
+                pointing_device_init();
+            }
+        }
+    }
+}
+
+void suspend_power_down_user(void) {
+    g_usb_suspended = true;
+    rgb_matrix_set_suspend_state(true);
+    ws2812_set_color_all(0, 0, 0);
+    ws2812_flush();
+    if (is_keyboard_master()) {
+        split_rgb_sync_t sync = {
+            .layer1_r = g_user_config.layer1_r,
+            .layer1_g = g_user_config.layer1_g,
+            .layer1_b = g_user_config.layer1_b,
+            .layer2_r = g_user_config.layer2_r,
+            .layer2_g = g_user_config.layer2_g,
+            .layer2_b = g_user_config.layer2_b,
+            .layer3_r = g_user_config.layer3_r,
+            .layer3_g = g_user_config.layer3_g,
+            .layer3_b = g_user_config.layer3_b,
+            .suspended = 1
+        };
+        transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync);
+    }
+}
+
+void suspend_wakeup_init_user(void) {
+    g_usb_suspended = false;
+    rgb_matrix_set_suspend_state(false);
+    if (is_keyboard_master()) {
+        g_split_rgb_sync_pending = true;
     }
 }
 
@@ -585,6 +750,10 @@ void pointing_device_init_user(void) {
 
 // 스마트 마우스 팜 리젝션 (타이핑 중 우발적인 트랙볼 스침 무시)
 report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+    if (!g_user_config.palm_rejection_en) {
+        return mouse_report;
+    }
+
     // 1. 마우스 레이어(Layer 3) 진입 중이거나 드래그스크롤 상태이면 팜 리젝션 해제 (사용자의 명시적 마우스 조작)
     uint8_t mouse_layer = g_user_config.auto_mouse_layer ? g_user_config.auto_mouse_layer : 3;
     bool in_mouse_mode = IS_LAYER_ON_STATE(layer_state, mouse_layer) || charybdis_get_pointer_dragscroll_enabled();
@@ -592,8 +761,13 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         return mouse_report;
     }
 
-    // 2. 스마트 마우스 팜 리젝션: 키보드 타이핑 후 200ms 이내의 미세한 스침/진동 무시
-    if (timer_elapsed32(s_last_typing_time) < 200) {
+    // 2. 스마트 마우스 팜 리젝션: 키보드 타이핑 후 palm_timeout 이내의 미세한 스침/진동 무시
+    uint16_t palm_timeout = ((uint16_t)g_user_config.palm_timeout_hi << 8) | g_user_config.palm_timeout_lo;
+    if (palm_timeout == 0) {
+        palm_timeout = 200;
+    }
+
+    if (timer_elapsed32(s_last_typing_time) < palm_timeout) {
         if (abs(mouse_report.x) < 14 && abs(mouse_report.y) < 14) {
             mouse_report.x = 0;
             mouse_report.y = 0;
@@ -658,8 +832,13 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 data[18] = g_user_config.layer3_r;
                 data[19] = g_user_config.layer3_g;
                 data[20] = g_user_config.layer3_b;
+                data[21] = g_user_config.rgb_timeout_hi;
+                data[22] = g_user_config.rgb_timeout_lo;
                 data[23] = (uint8_t)pointing_device_get_status();
                 data[24] = charybdis_get_pointer_dragscroll_enabled() ? 1 : 0;
+                data[25] = g_user_config.palm_rejection_en;
+                data[26] = g_user_config.palm_timeout_hi;
+                data[27] = g_user_config.palm_timeout_lo;
                 break;
 
             case 0x05: // REINIT_SENSOR
@@ -684,6 +863,13 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 g_user_config.layer3_r          = data[18];
                 g_user_config.layer3_g          = data[19];
                 g_user_config.layer3_b          = data[20];
+                g_user_config.rgb_timeout_hi    = data[21];
+                g_user_config.rgb_timeout_lo    = data[22];
+                if (data[25] != 0 || data[26] != 0 || data[27] != 0) {
+                    g_user_config.palm_rejection_en = data[25];
+                    g_user_config.palm_timeout_hi   = data[26];
+                    g_user_config.palm_timeout_lo   = data[27];
+                }
                 apply_user_config();
                 g_split_rgb_sync_pending = true;
                 data[2] = 1; // success
@@ -706,6 +892,11 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 g_user_config.layer1_r = 255; g_user_config.layer1_g = 0;   g_user_config.layer1_b = 0;
                 g_user_config.layer2_r = 0;   g_user_config.layer2_g = 0;   g_user_config.layer2_b = 255;
                 g_user_config.layer3_r = 180; g_user_config.layer3_g = 0;   g_user_config.layer3_b = 255;
+                g_user_config.rgb_timeout_hi    = 0;
+                g_user_config.rgb_timeout_lo    = 60; // 60초 (1분)
+                g_user_config.palm_rejection_en = 1;
+                g_user_config.palm_timeout_hi   = 0;
+                g_user_config.palm_timeout_lo   = 200; // 200ms
                 // Reset TD slots
                 g_user_config.td_slots[0]  = (td_config_slot_t){KC_N, KC_B};
                 g_user_config.td_slots[1]  = (td_config_slot_t){KC_Z, LCTL(KC_Z)};
@@ -771,6 +962,10 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 
 // Layer-dependent RGB Matrix Indicators (Dynamic live colors)
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
+    if (rgb_matrix_get_suspend_state()) {
+        return false;
+    }
+
     uint8_t current_layer = get_highest_layer(layer_state);
 
     switch (current_layer) {

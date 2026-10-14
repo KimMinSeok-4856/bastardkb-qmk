@@ -419,7 +419,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 // Charybdis WebHID Custom Configuration Struct (Extended for Tap Dance & RGB Sleep Timeout)
 #define CHARYBDIS_CONFIG_MAGIC 0xCB
-#define CHARYBDIS_CONFIG_VERSION 3
+#define CHARYBDIS_CONFIG_VERSION 4
 #define NUM_TD_SLOTS 11
 
 typedef struct {
@@ -448,7 +448,10 @@ typedef struct {
     uint8_t layer3_b;
     uint8_t rgb_timeout_hi;
     uint8_t rgb_timeout_lo;
-    uint8_t reserved[10];
+    uint8_t palm_rejection_en;
+    uint8_t palm_timeout_hi;
+    uint8_t palm_timeout_lo;
+    uint8_t reserved[7];
     td_config_slot_t td_slots[NUM_TD_SLOTS];
 } charybdis_user_config_t;
 
@@ -467,6 +470,9 @@ static charybdis_user_config_t g_user_config = {
     .layer3_r = 180, .layer3_g = 0, .layer3_b = 255,
     .rgb_timeout_hi = 0,
     .rgb_timeout_lo = 60, // 기본 60초 (1분)
+    .palm_rejection_en = 1,
+    .palm_timeout_hi = 0,
+    .palm_timeout_lo = 200, // 기본 200ms
     .td_slots = {
         [0]  = {KC_N, KC_B},
         [1]  = {KC_Z, LCTL(KC_Z)},
@@ -523,11 +529,22 @@ void load_user_config(void) {
             if (loaded.version == CHARYBDIS_CONFIG_VERSION) {
                 g_user_config = loaded;
             } else if (loaded.version == 2) {
-                // v2에서 마이그레이션: 기존 DPI/RGB/TD 설정 유지, 타임아웃 기본값 1분(60초) 설정
+                // v2에서 마이그레이션: 기존 DPI/RGB/TD 설정 유지, 타임아웃 기본값 1분(60초), 팜 리젝션 기본값 설정
                 g_user_config = loaded;
                 g_user_config.version = CHARYBDIS_CONFIG_VERSION;
                 g_user_config.rgb_timeout_hi = 0;
                 g_user_config.rgb_timeout_lo = 60;
+                g_user_config.palm_rejection_en = 1;
+                g_user_config.palm_timeout_hi = 0;
+                g_user_config.palm_timeout_lo = 200;
+                save_user_config();
+            } else if (loaded.version == 3) {
+                // v3에서 마이그레이션: 기존 설정 유지, 팜 리젝션 활성화 및 200ms 설정
+                g_user_config = loaded;
+                g_user_config.version = CHARYBDIS_CONFIG_VERSION;
+                g_user_config.palm_rejection_en = 1;
+                g_user_config.palm_timeout_hi = 0;
+                g_user_config.palm_timeout_lo = 200;
                 save_user_config();
             }
         }
@@ -733,6 +750,10 @@ void pointing_device_init_user(void) {
 
 // 스마트 마우스 팜 리젝션 (타이핑 중 우발적인 트랙볼 스침 무시)
 report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+    if (!g_user_config.palm_rejection_en) {
+        return mouse_report;
+    }
+
     // 1. 마우스 레이어(Layer 3) 진입 중이거나 드래그스크롤 상태이면 팜 리젝션 해제 (사용자의 명시적 마우스 조작)
     uint8_t mouse_layer = g_user_config.auto_mouse_layer ? g_user_config.auto_mouse_layer : 3;
     bool in_mouse_mode = IS_LAYER_ON_STATE(layer_state, mouse_layer) || charybdis_get_pointer_dragscroll_enabled();
@@ -740,8 +761,13 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         return mouse_report;
     }
 
-    // 2. 스마트 마우스 팜 리젝션: 키보드 타이핑 후 200ms 이내의 미세한 스침/진동 무시
-    if (timer_elapsed32(s_last_typing_time) < 200) {
+    // 2. 스마트 마우스 팜 리젝션: 키보드 타이핑 후 palm_timeout 이내의 미세한 스침/진동 무시
+    uint16_t palm_timeout = ((uint16_t)g_user_config.palm_timeout_hi << 8) | g_user_config.palm_timeout_lo;
+    if (palm_timeout == 0) {
+        palm_timeout = 200;
+    }
+
+    if (timer_elapsed32(s_last_typing_time) < palm_timeout) {
         if (abs(mouse_report.x) < 14 && abs(mouse_report.y) < 14) {
             mouse_report.x = 0;
             mouse_report.y = 0;
@@ -810,6 +836,9 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 data[22] = g_user_config.rgb_timeout_lo;
                 data[23] = (uint8_t)pointing_device_get_status();
                 data[24] = charybdis_get_pointer_dragscroll_enabled() ? 1 : 0;
+                data[25] = g_user_config.palm_rejection_en;
+                data[26] = g_user_config.palm_timeout_hi;
+                data[27] = g_user_config.palm_timeout_lo;
                 break;
 
             case 0x05: // REINIT_SENSOR
@@ -836,6 +865,11 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 g_user_config.layer3_b          = data[20];
                 g_user_config.rgb_timeout_hi    = data[21];
                 g_user_config.rgb_timeout_lo    = data[22];
+                if (data[25] != 0 || data[26] != 0 || data[27] != 0) {
+                    g_user_config.palm_rejection_en = data[25];
+                    g_user_config.palm_timeout_hi   = data[26];
+                    g_user_config.palm_timeout_lo   = data[27];
+                }
                 apply_user_config();
                 g_split_rgb_sync_pending = true;
                 data[2] = 1; // success
@@ -860,6 +894,9 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 g_user_config.layer3_r = 180; g_user_config.layer3_g = 0;   g_user_config.layer3_b = 255;
                 g_user_config.rgb_timeout_hi    = 0;
                 g_user_config.rgb_timeout_lo    = 60; // 60초 (1분)
+                g_user_config.palm_rejection_en = 1;
+                g_user_config.palm_timeout_hi   = 0;
+                g_user_config.palm_timeout_lo   = 200; // 200ms
                 // Reset TD slots
                 g_user_config.td_slots[0]  = (td_config_slot_t){KC_N, KC_B};
                 g_user_config.td_slots[1]  = (td_config_slot_t){KC_Z, LCTL(KC_Z)};
