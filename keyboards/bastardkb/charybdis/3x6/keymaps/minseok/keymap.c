@@ -411,35 +411,25 @@ void keyboard_post_init_user(void) {
 void housekeeping_task_user(void) {
     if (is_keyboard_master()) {
         static uint32_t last_sync_timer = 0;
-        static uint8_t  sync_retry_count = 0;
         if (g_split_rgb_sync_pending || !g_initial_slave_sync_done) {
-            if (!is_transport_connected()) {
-                g_split_rgb_sync_pending = false;
-                g_initial_slave_sync_done = true;
-                sync_retry_count = 0;
-            } else if (timer_elapsed32(last_sync_timer) > 500) {
-                last_sync_timer = timer_read32();
-                split_rgb_sync_t sync = {
-                    .layer1_r = g_user_config.layer1_r,
-                    .layer1_g = g_user_config.layer1_g,
-                    .layer1_b = g_user_config.layer1_b,
-                    .layer2_r = g_user_config.layer2_r,
-                    .layer2_g = g_user_config.layer2_g,
-                    .layer2_b = g_user_config.layer2_b,
-                    .layer3_r = g_user_config.layer3_r,
-                    .layer3_g = g_user_config.layer3_g,
-                    .layer3_b = g_user_config.layer3_b
-                };
-                if (transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync)) {
-                    g_split_rgb_sync_pending = false;
-                    g_initial_slave_sync_done = true;
-                    sync_retry_count = 0;
-                } else {
-                    sync_retry_count++;
-                    if (sync_retry_count >= 3) {
+            // 슬레이브가 정상 연결되었을 때 동기화 RPC 전송 (부팅 직후 조기 취소 방지)
+            if (is_transport_connected()) {
+                if (last_sync_timer == 0 || timer_elapsed32(last_sync_timer) > 300) {
+                    last_sync_timer = timer_read32();
+                    split_rgb_sync_t sync = {
+                        .layer1_r = g_user_config.layer1_r,
+                        .layer1_g = g_user_config.layer1_g,
+                        .layer1_b = g_user_config.layer1_b,
+                        .layer2_r = g_user_config.layer2_r,
+                        .layer2_g = g_user_config.layer2_g,
+                        .layer2_b = g_user_config.layer2_b,
+                        .layer3_r = g_user_config.layer3_r,
+                        .layer3_g = g_user_config.layer3_g,
+                        .layer3_b = g_user_config.layer3_b
+                    };
+                    if (transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync)) {
                         g_split_rgb_sync_pending = false;
                         g_initial_slave_sync_done = true;
-                        sync_retry_count = 0;
                     }
                 }
             }

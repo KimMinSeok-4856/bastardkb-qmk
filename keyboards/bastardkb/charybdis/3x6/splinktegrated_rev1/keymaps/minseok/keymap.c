@@ -508,7 +508,6 @@ void housekeeping_task_user(void) {
         bool cur_suspend = rgb_matrix_get_suspend_state();
 
         static uint32_t last_sync_timer = 0;
-        static uint8_t  sync_retry_count = 0;
 
         if (should_suspend != cur_suspend) {
             rgb_matrix_set_suspend_state(should_suspend);
@@ -517,41 +516,29 @@ void housekeeping_task_user(void) {
                 ws2812_flush();
             }
             g_split_rgb_sync_pending = true;
-            sync_retry_count = 0;
             last_sync_timer = 0; // 상태 변경 시 즉시 슬레이브 동기화 전송
         }
 
         if (g_split_rgb_sync_pending || !g_initial_slave_sync_done) {
-            // 슬레이브 미연결 시 즉시 중단
-            if (!is_transport_connected()) {
-                g_split_rgb_sync_pending = false;
-                g_initial_slave_sync_done = true;
-                sync_retry_count = 0;
-            } else if (last_sync_timer == 0 || timer_elapsed32(last_sync_timer) > 500) {
-                last_sync_timer = timer_read32();
-                split_rgb_sync_t sync = {
-                    .layer1_r = g_user_config.layer1_r,
-                    .layer1_g = g_user_config.layer1_g,
-                    .layer1_b = g_user_config.layer1_b,
-                    .layer2_r = g_user_config.layer2_r,
-                    .layer2_g = g_user_config.layer2_g,
-                    .layer2_b = g_user_config.layer2_b,
-                    .layer3_r = g_user_config.layer3_r,
-                    .layer3_g = g_user_config.layer3_g,
-                    .layer3_b = g_user_config.layer3_b,
-                    .suspended = should_suspend ? 1 : 0
-                };
-                if (transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync)) {
-                    g_split_rgb_sync_pending = false;
-                    g_initial_slave_sync_done = true;
-                    sync_retry_count = 0;
-                } else {
-                    sync_retry_count++;
-                    if (sync_retry_count >= 3) {
-                        // 3회 실패 시 영구 중단하여 트랙볼/키 입력 폴링 블로킹 완전 방지
+            // 슬레이브가 정상 연결되었을 때 동기화 RPC 전송 (부팅 직후 조기 취소 방지)
+            if (is_transport_connected()) {
+                if (last_sync_timer == 0 || timer_elapsed32(last_sync_timer) > 300) {
+                    last_sync_timer = timer_read32();
+                    split_rgb_sync_t sync = {
+                        .layer1_r = g_user_config.layer1_r,
+                        .layer1_g = g_user_config.layer1_g,
+                        .layer1_b = g_user_config.layer1_b,
+                        .layer2_r = g_user_config.layer2_r,
+                        .layer2_g = g_user_config.layer2_g,
+                        .layer2_b = g_user_config.layer2_b,
+                        .layer3_r = g_user_config.layer3_r,
+                        .layer3_g = g_user_config.layer3_g,
+                        .layer3_b = g_user_config.layer3_b,
+                        .suspended = should_suspend ? 1 : 0
+                    };
+                    if (transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync)) {
                         g_split_rgb_sync_pending = false;
                         g_initial_slave_sync_done = true;
-                        sync_retry_count = 0;
                     }
                 }
             }
