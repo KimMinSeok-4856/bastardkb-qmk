@@ -14,6 +14,7 @@
 #include "pointing_device_auto_mouse.h"
 #include "charybdis.h"
 #include "transactions.h"
+#include "split_util.h"
 
 typedef struct {
     uint8_t layer1_r;
@@ -410,8 +411,13 @@ void keyboard_post_init_user(void) {
 void housekeeping_task_user(void) {
     if (is_keyboard_master()) {
         static uint32_t last_sync_timer = 0;
+        static uint8_t  sync_retry_count = 0;
         if (g_split_rgb_sync_pending || !g_initial_slave_sync_done) {
-            if (timer_elapsed32(last_sync_timer) > 100) {
+            if (!is_transport_connected()) {
+                g_split_rgb_sync_pending = false;
+                g_initial_slave_sync_done = true;
+                sync_retry_count = 0;
+            } else if (timer_elapsed32(last_sync_timer) > 500) {
                 last_sync_timer = timer_read32();
                 split_rgb_sync_t sync = {
                     .layer1_r = g_user_config.layer1_r,
@@ -427,6 +433,14 @@ void housekeeping_task_user(void) {
                 if (transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync)) {
                     g_split_rgb_sync_pending = false;
                     g_initial_slave_sync_done = true;
+                    sync_retry_count = 0;
+                } else {
+                    sync_retry_count++;
+                    if (sync_retry_count >= 3) {
+                        g_split_rgb_sync_pending = false;
+                        g_initial_slave_sync_done = true;
+                        sync_retry_count = 0;
+                    }
                 }
             }
         }

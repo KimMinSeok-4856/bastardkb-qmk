@@ -14,6 +14,7 @@
 #include "pointing_device_auto_mouse.h"
 #include "charybdis.h"
 #include "transactions.h"
+#include "split_util.h"
 #include "ws2812.h"
 
 typedef struct {
@@ -507,6 +508,7 @@ void housekeeping_task_user(void) {
         bool cur_suspend = rgb_matrix_get_suspend_state();
 
         static uint32_t last_sync_timer = 0;
+        static uint8_t  sync_retry_count = 0;
 
         if (should_suspend != cur_suspend) {
             rgb_matrix_set_suspend_state(should_suspend);
@@ -515,11 +517,17 @@ void housekeeping_task_user(void) {
                 ws2812_flush();
             }
             g_split_rgb_sync_pending = true;
+            sync_retry_count = 0;
             last_sync_timer = 0; // 상태 변경 시 즉시 슬레이브 동기화 전송
         }
 
         if (g_split_rgb_sync_pending || !g_initial_slave_sync_done) {
-            if (last_sync_timer == 0 || timer_elapsed32(last_sync_timer) > 50) {
+            // 슬레이브 미연결 시 즉시 중단
+            if (!is_transport_connected()) {
+                g_split_rgb_sync_pending = false;
+                g_initial_slave_sync_done = true;
+                sync_retry_count = 0;
+            } else if (last_sync_timer == 0 || timer_elapsed32(last_sync_timer) > 500) {
                 last_sync_timer = timer_read32();
                 split_rgb_sync_t sync = {
                     .layer1_r = g_user_config.layer1_r,
@@ -536,6 +544,15 @@ void housekeeping_task_user(void) {
                 if (transaction_rpc_send(RPC_ID_USER_CONFIG_SYNC, sizeof(sync), &sync)) {
                     g_split_rgb_sync_pending = false;
                     g_initial_slave_sync_done = true;
+                    sync_retry_count = 0;
+                } else {
+                    sync_retry_count++;
+                    if (sync_retry_count >= 3) {
+                        // 3회 실패 시 영구 중단하여 트랙볼/키 입력 폴링 블로킹 완전 방지
+                        g_split_rgb_sync_pending = false;
+                        g_initial_slave_sync_done = true;
+                        sync_retry_count = 0;
+                    }
                 }
             }
         }
