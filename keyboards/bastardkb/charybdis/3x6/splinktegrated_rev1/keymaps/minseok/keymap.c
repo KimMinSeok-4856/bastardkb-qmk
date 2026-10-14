@@ -177,6 +177,133 @@ enum charybdis_custom_color_keycodes {
 };
 static void cycle_layer_color(uint8_t layer, bool reverse);
 
+// 마우스 키 판별 전방 선언
+bool is_mouse_record_user(uint16_t keycode, keyrecord_t *record);
+
+// 스마트 마우스 팜 리젝션용 타이핑 시간 기록 변수
+static uint32_t s_last_typing_time = 0;
+static uint16_t s_last_typed_char = 0;
+static uint32_t s_last_typed_time = 0;
+
+// 스마트 괄호 / 따옴표 자동 완성 상태 변수
+static bool     s_smart_pair_active = false;
+static uint16_t s_smart_pair_closing_code = 0;
+static bool     s_smart_pair_is_shift = false;
+
+// 스마트 괄호 / 따옴표 자동 완성 처리 함수
+static bool process_smart_bracket_quotes(uint16_t keycode, keyrecord_t *record) {
+    if (!record->event.pressed) {
+        return true;
+    }
+
+    uint8_t mods = get_mods();
+    bool is_shift = (mods & MOD_MASK_SHIFT);
+    bool has_other_mods = (mods & (MOD_MASK_CTRL | MOD_MASK_ALT | MOD_MASK_GUI));
+
+    // Ctrl, Alt, Win 수식키 조합은 시스템/앱 단축키이므로 완전 바이패스
+    if (has_other_mods) {
+        s_smart_pair_active = false;
+        return true;
+    }
+
+    // 1. 괄호/따옴표 자동 완성 직후 백스페이스 누름 시 열림/닫힘 한 쌍 동시 삭제
+    if (keycode == KC_BSPC && s_smart_pair_active) {
+        s_smart_pair_active = false;
+        tap_code16(KC_DEL); // 커서 오른쪽 닫는 기호 삭제
+        return true;        // 여는 기호는 기본 백스페이스로 삭제
+    }
+
+    // 2. 닫는 기호 오버타입(Skip) 처리: 이미 닫는 기호가 있는 상태에서 닫는 기호를 칠 때 중복 입력 방지
+    if (s_smart_pair_active && keycode == s_smart_pair_closing_code && (is_shift == s_smart_pair_is_shift)) {
+        s_smart_pair_active = false;
+        if (is_shift) {
+            del_mods(MOD_MASK_SHIFT);
+            send_keyboard_report();
+            tap_code16(KC_RIGHT);
+            set_mods(mods);
+            send_keyboard_report();
+        } else {
+            tap_code16(KC_RIGHT);
+        }
+        return false;
+    }
+
+    // 3. 소괄호 '(' (Shift + 9) -> "()" 자동 완성 및 커서 중앙 배치
+    if (keycode == KC_9 && is_shift) {
+        del_mods(MOD_MASK_SHIFT);
+        send_keyboard_report();
+        tap_code16(KC_LPRN); // (
+        tap_code16(KC_RPRN); // )
+        tap_code16(KC_LEFT); // 커서 가운데로 이동
+        set_mods(mods);
+        send_keyboard_report();
+
+        s_smart_pair_active = true;
+        s_smart_pair_closing_code = KC_0;
+        s_smart_pair_is_shift = true;
+        return false;
+    }
+
+    // 4. 대괄호 '[' 및 중괄호 '{' (Shift + [)
+    if (keycode == KC_LBRC) {
+        del_mods(MOD_MASK_SHIFT);
+        send_keyboard_report();
+        if (is_shift) {
+            tap_code16(KC_LCBR); // {
+            tap_code16(KC_RCBR); // }
+            tap_code16(KC_LEFT);
+            s_smart_pair_is_shift = true;
+        } else {
+            tap_code16(KC_LBRC); // [
+            tap_code16(KC_RBRC); // ]
+            tap_code16(KC_LEFT);
+            s_smart_pair_is_shift = false;
+        }
+        set_mods(mods);
+        send_keyboard_report();
+
+        s_smart_pair_active = true;
+        s_smart_pair_closing_code = KC_RBRC;
+        return false;
+    }
+
+    // 5. 큰따옴표 '"' (Shift + ') 및 작은따옴표 '\''
+    if (keycode == KC_QUOTE) {
+        if (is_shift) {
+            // 큰따옴표: 항상 한 쌍 ("") 자동 완성
+            del_mods(MOD_MASK_SHIFT);
+            send_keyboard_report();
+            tap_code16(KC_DQUO); // "
+            tap_code16(KC_DQUO); // "
+            tap_code16(KC_LEFT);
+            set_mods(mods);
+            send_keyboard_report();
+
+            s_smart_pair_active = true;
+            s_smart_pair_closing_code = KC_QUOTE;
+            s_smart_pair_is_shift = true;
+            return false;
+        } else {
+            // 작은따옴표: 영문 축약어(it's, don't, I'm 등) 입력 중일 때는 자동 완성 생략
+            bool is_contraction = (s_last_typed_char >= KC_A && s_last_typed_char <= KC_Z) && (timer_elapsed32(s_last_typed_time) < 500);
+            if (!is_contraction) {
+                tap_code16(KC_QUOTE); // '
+                tap_code16(KC_QUOTE); // '
+                tap_code16(KC_LEFT);
+
+                s_smart_pair_active = true;
+                s_smart_pair_closing_code = KC_QUOTE;
+                s_smart_pair_is_shift = false;
+                return false;
+            }
+        }
+    }
+
+    // 다른 키가 눌리면 스마트 페어 추적 해제
+    s_smart_pair_active = false;
+    return true;
+}
+
 // 한글 시프트 롤오버 오타 방지 (깨 -> 꺠, 있다 -> 있따 원천 차단)
 static uint16_t s_shift_suppressed_key = 0;
 static uint32_t s_last_double_consonant_time = 0;
@@ -185,6 +312,20 @@ static uint16_t s_last_double_consonant_key = 0;
 // 탭댄스 키를 손에서 떼는 순간 0ms 딜레이로 즉시 기본 키(Tap) 입력 전송
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
+        // 스마트 마우스 팜 리젝션용 타이핑 시간 및 문자 기록
+        if (!is_mouse_record_user(keycode, record) && !IS_MOUSEKEY(keycode)) {
+            s_last_typing_time = timer_read32();
+            if (keycode >= KC_A && keycode <= KC_Z) {
+                s_last_typed_char = keycode;
+                s_last_typed_time = s_last_typing_time;
+            }
+        }
+
+        // 스마트 괄호 / 따옴표 자동 완성 처리
+        if (!process_smart_bracket_quotes(keycode, record)) {
+            return false;
+        }
+
         bool rev = (get_mods() | get_oneshot_mods()) & MOD_MASK_SHIFT;
         switch (keycode) {
             case CKC_L1_COL:
@@ -590,6 +731,29 @@ void pointing_device_init_user(void) {
     apply_user_config();
 }
 
+// 스마트 마우스 팜 리젝션 (타이핑 중 우발적인 트랙볼 스침 무시)
+report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+    // 1. 마우스 레이어(Layer 3) 진입 중이거나 드래그스크롤 상태이면 팜 리젝션 해제 (사용자의 명시적 마우스 조작)
+    uint8_t mouse_layer = g_user_config.auto_mouse_layer ? g_user_config.auto_mouse_layer : 3;
+    bool in_mouse_mode = IS_LAYER_ON_STATE(layer_state, mouse_layer) || charybdis_get_pointer_dragscroll_enabled();
+    if (in_mouse_mode || mouse_report.buttons != 0) {
+        return mouse_report;
+    }
+
+    // 2. 스마트 마우스 팜 리젝션: 키보드 타이핑 후 200ms 이내의 미세한 스침/진동 무시
+    if (timer_elapsed32(s_last_typing_time) < 200) {
+        if (abs(mouse_report.x) < 14 && abs(mouse_report.y) < 14) {
+            mouse_report.x = 0;
+            mouse_report.y = 0;
+        } else {
+            // 사용자가 의도적으로 빠르게 트랙볼을 크게 굴린 경우 즉시 허용
+            s_last_typing_time = 0;
+        }
+    }
+
+    return mouse_report;
+}
+
 // Ensure dragscroll cleanly turns off whenever exiting the mouse layer so it never gets stuck
 layer_state_t layer_state_set_user(layer_state_t state) {
     uint8_t mouse_layer = g_user_config.auto_mouse_layer ? g_user_config.auto_mouse_layer : 3;
@@ -606,6 +770,11 @@ bool is_mouse_record_user(uint16_t keycode, keyrecord_t *record) {
         case SNIPING:
         case SNP_TOG:
         case DPI_MOD:
+        case MS_BTN1:
+        case MS_BTN2:
+        case MS_BTN3:
+        case MS_BTN4:
+        case MS_BTN5:
             return true;
         default:
             return false;
