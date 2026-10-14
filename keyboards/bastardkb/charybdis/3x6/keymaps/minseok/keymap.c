@@ -499,6 +499,13 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 data[18] = g_user_config.layer3_r;
                 data[19] = g_user_config.layer3_g;
                 data[20] = g_user_config.layer3_b;
+                data[23] = (uint8_t)pointing_device_get_status();
+                data[24] = charybdis_get_pointer_dragscroll_enabled() ? 1 : 0;
+                break;
+
+            case 0x05: // REINIT_SENSOR
+                pointing_device_init();
+                data[2] = (pointing_device_get_status() == POINTING_DEVICE_STATUS_SUCCESS) ? 1 : 0;
                 break;
 
             case 0x02: // SET_CONFIG (Live apply)

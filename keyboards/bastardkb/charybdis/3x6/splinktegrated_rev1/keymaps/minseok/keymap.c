@@ -556,6 +556,15 @@ void housekeeping_task_user(void) {
                 }
             }
         }
+
+        // 트랙볼 센서가 초기화 실패(INIT_FAILED) 상태인 경우 1초마다 자동 복구(Auto-recovery) 재시도
+        if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
+            static uint32_t last_sensor_retry = 0;
+            if (timer_elapsed32(last_sensor_retry) > 1000) {
+                last_sensor_retry = timer_read32();
+                pointing_device_init();
+            }
+        }
     }
 }
 
@@ -643,6 +652,13 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
                 data[20] = g_user_config.layer3_b;
                 data[21] = g_user_config.rgb_timeout_hi;
                 data[22] = g_user_config.rgb_timeout_lo;
+                data[23] = (uint8_t)pointing_device_get_status();
+                data[24] = charybdis_get_pointer_dragscroll_enabled() ? 1 : 0;
+                break;
+
+            case 0x05: // REINIT_SENSOR
+                pointing_device_init();
+                data[2] = (pointing_device_get_status() == POINTING_DEVICE_STATUS_SUCCESS) ? 1 : 0;
                 break;
 
             case 0x02: // SET_CONFIG (Live apply)
