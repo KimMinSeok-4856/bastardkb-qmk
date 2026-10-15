@@ -16,6 +16,8 @@
 #include "transactions.h"
 #include "split_util.h"
 #include "ws2812.h"
+#include "bootloader.h"
+#include "usb_util.h"
 
 typedef struct {
     uint8_t layer1_r;
@@ -621,7 +623,10 @@ static void cycle_layer_color(uint8_t layer, bool reverse) {
 }
 
 
+static uint32_t s_slave_last_ping_time = 0;
+
 static void slave_rgb_sync_callback(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
+    s_slave_last_ping_time = timer_read32();
     if (initiator2target_buffer_size >= sizeof(split_rgb_sync_t)) {
         const split_rgb_sync_t *sync = (const split_rgb_sync_t *)initiator2target_buffer;
         g_user_config.layer1_r = sync->layer1_r;
@@ -653,6 +658,11 @@ static bool g_usb_suspended = false;
 
 void housekeeping_task_user(void) {
     if (is_keyboard_master()) {
+        // PC 연결이 활성화(USB_ACTIVE) 상태라면 혹시 남아있던 서스펜드 플래그 자동 해제
+        if (usb_connected_state() && g_usb_suspended) {
+            g_usb_suspended = false;
+        }
+
         uint16_t timeout_sec = charybdis_get_custom_rgb_timeout_sec();
         bool is_idle = false;
         if (timeout_sec > 0) {
@@ -709,6 +719,19 @@ void housekeeping_task_user(void) {
                 last_sensor_retry = timer_read32();
                 pointing_device_init();
             }
+        }
+    } else {
+        // --- 슬레이브 모드 콜드부트 자동 복구 워치독 ---
+        // PC 부팅 지연으로 인해 마스터(우측)가 슬레이브로 오판되어 USB가 꺼진 경우 자동 감지 및 재부팅
+        static uint32_t s_slave_boot_time = 0;
+        if (s_slave_boot_time == 0) {
+            s_slave_boot_time = timer_read32();
+        }
+
+        // 부팅 후 3500ms 이상 지났는데 마스터로부터 단 한 번도 신호가 오지 않은 경우:
+        // (진짜 슬레이브인 좌측 보드는 우측 마스터가 켜지는 즉시 split_rgb_sync를 수신하므로 s_slave_last_ping_time > 0이 됨)
+        if (timer_elapsed32(s_slave_boot_time) > 3500 && s_slave_last_ping_time == 0) {
+            mcu_reset(); // 하드웨어 즉시 재부팅하여 USB 마스터 재검출
         }
     }
 }
