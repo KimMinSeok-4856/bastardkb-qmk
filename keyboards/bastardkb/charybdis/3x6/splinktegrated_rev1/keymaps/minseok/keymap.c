@@ -34,6 +34,7 @@ typedef struct {
 
 static bool g_split_rgb_sync_pending = false;
 static bool g_initial_slave_sync_done = false;
+static bool g_usb_suspended = false;
 
 static void slave_rgb_sync_callback(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer);
 
@@ -314,6 +315,9 @@ static uint16_t s_last_double_consonant_key = 0;
 // 탭댄스 키를 손에서 떼는 순간 0ms 딜레이로 즉시 기본 키(Tap) 입력 전송
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
+        if (g_usb_suspended) {
+            g_usb_suspended = false;
+        }
         // 스마트 마우스 팜 리젝션용 타이핑 시간 및 문자 기록
         if (!is_mouse_record_user(keycode, record) && !IS_MOUSEKEY(keycode)) {
             s_last_typing_time = timer_read32();
@@ -623,10 +627,7 @@ static void cycle_layer_color(uint8_t layer, bool reverse) {
 }
 
 
-static uint32_t s_slave_last_ping_time = 0;
-
 static void slave_rgb_sync_callback(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
-    s_slave_last_ping_time = timer_read32();
     if (initiator2target_buffer_size >= sizeof(split_rgb_sync_t)) {
         const split_rgb_sync_t *sync = (const split_rgb_sync_t *)initiator2target_buffer;
         g_user_config.layer1_r = sync->layer1_r;
@@ -653,8 +654,6 @@ void keyboard_post_init_user(void) {
         g_split_rgb_sync_pending = true;
     }
 }
-
-static bool g_usb_suspended = false;
 
 void housekeeping_task_user(void) {
     if (is_keyboard_master()) {
@@ -731,19 +730,6 @@ void housekeeping_task_user(void) {
             }
         } else {
             s_slave_suspended_cleared = false;
-        }
-
-        // --- 슬레이브 모드 콜드부트 자동 복구 워치독 ---
-        // PC 부팅 지연으로 인해 마스터(우측)가 슬레이브로 오판되어 USB가 꺼진 경우 자동 감지 및 재부팅
-        static uint32_t s_slave_boot_time = 0;
-        if (s_slave_boot_time == 0) {
-            s_slave_boot_time = timer_read32();
-        }
-
-        // 부팅 후 3500ms 이상 지났는데 마스터로부터 단 한 번도 신호가 오지 않은 경우:
-        // (진짜 슬레이브인 좌측 보드는 우측 마스터가 켜지는 즉시 split_rgb_sync를 수신하므로 s_slave_last_ping_time > 0이 됨)
-        if (timer_elapsed32(s_slave_boot_time) > 3500 && s_slave_last_ping_time == 0) {
-            mcu_reset(); // 하드웨어 즉시 재부팅하여 USB 마스터 재검출
         }
     }
 }

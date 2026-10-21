@@ -3,8 +3,8 @@
 #define SPLIT_LAYER_STATE_ENABLE
 #define SPLIT_LED_STATE_ENABLE
 
-// PC 콜드 부팅 시 USB 인식 대기 시간 최적화 (2500ms)
-#define SPLIT_USB_TIMEOUT 2500
+// PC 콜드 부팅 시 USB 인식 대기 시간 최적화 (10000ms: 메인보드 BIOS/UEFI 초기화 완료까지 충분히 대기)
+#define SPLIT_USB_TIMEOUT 10000
 
 // PC 절전 모드(USB Suspend) 감지 시 키보드 LED 자동 소등
 #define RGB_MATRIX_SLEEP
