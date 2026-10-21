@@ -11,6 +11,9 @@
 #define RGB_DISABLE_WHEN_USB_SUSPENDED
 #define RGB_MATRIX_TIMEOUT 0 // 동적 타이머(Vial GUI 설정)로 제어
 
+// RP2040 고성능(125MHz) 처리: 9개 단위 분할 연산(구형 8비트 AVR 유산) 해제 -> 42개 전체 단일 프레임 동시 처리 (절전 시 3열 멈춤 버그 원천 차단)
+#define RGB_MATRIX_LED_PROCESS_LIMIT RGB_MATRIX_LED_COUNT
+
 // 탭/홀드 판정 최적화 (스페이스 단타 직후 길게 누름 시 레이어2 씹힘 100% 방지)
 #define QUICK_TAP_TERM 0
 #define PERMISSIVE_HOLD

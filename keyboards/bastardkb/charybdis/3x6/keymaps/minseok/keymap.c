@@ -721,6 +721,18 @@ void housekeeping_task_user(void) {
             }
         }
     } else {
+        // --- 슬레이브 모드 서스펜드/절전 소등 상태 유지 보장 ---
+        static bool s_slave_suspended_cleared = false;
+        if (rgb_matrix_get_suspend_state()) {
+            if (!s_slave_suspended_cleared) {
+                s_slave_suspended_cleared = true;
+                ws2812_set_color_all(0, 0, 0);
+                ws2812_flush();
+            }
+        } else {
+            s_slave_suspended_cleared = false;
+        }
+
         // --- 슬레이브 모드 콜드부트 자동 복구 워치독 ---
         // PC 부팅 지연으로 인해 마스터(우측)가 슬레이브로 오판되어 USB가 꺼진 경우 자동 감지 및 재부팅
         static uint32_t s_slave_boot_time = 0;
