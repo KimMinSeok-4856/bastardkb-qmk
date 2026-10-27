@@ -3,8 +3,9 @@
 #define SPLIT_LAYER_STATE_ENABLE
 #define SPLIT_LED_STATE_ENABLE
 
-// PC 콜드 부팅 시 USB 인식 대기 시간 최적화 (10000ms: 메인보드 BIOS/UEFI 초기화 완료까지 충분히 대기)
-#define SPLIT_USB_TIMEOUT 10000
+// 하드웨어 VBUS 감지 핀 (GP19): USB 연결 즉시 0ms 감지 -> 좌우측 LED 딜레이 없이 즉시 점등
+#define USB_VBUS_PIN GP19
+#define SPLIT_USB_TIMEOUT 2000
 
 // PC 절전 모드(USB Suspend) 감지 시 키보드 LED 자동 소등
 #define RGB_MATRIX_SLEEP

@@ -36,6 +36,19 @@ static bool g_split_rgb_sync_pending = false;
 static bool g_initial_slave_sync_done = false;
 static bool g_usb_suspended = false;
 
+// 하드웨어 VBUS(GP19) 초고속 감지 오버라이드: USB 연결 시 0ms 즉시 마스터 확정 (좌우 10초 부팅 지연 원천 해결)
+bool usb_vbus_state(void) {
+    gpio_set_pin_input_low(GP19);
+    wait_us(10);
+    if (gpio_read_pin(GP19)) {
+        return true;
+    }
+    if (usb_connected_state()) {
+        return true;
+    }
+    return false;
+}
+
 static void slave_rgb_sync_callback(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer);
 
 
@@ -315,8 +328,10 @@ static uint16_t s_last_double_consonant_key = 0;
 // 탭댄스 키를 손에서 떼는 순간 0ms 딜레이로 즉시 기본 키(Tap) 입력 전송
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
-        if (g_usb_suspended) {
+        if (g_usb_suspended || rgb_matrix_get_suspend_state()) {
             g_usb_suspended = false;
+            rgb_matrix_set_suspend_state(false);
+            g_split_rgb_sync_pending = true;
         }
         // 스마트 마우스 팜 리젝션용 타이핑 시간 및 문자 기록
         if (!is_mouse_record_user(keycode, record) && !IS_MOUSEKEY(keycode)) {
